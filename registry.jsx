@@ -1,0 +1,227 @@
+// ============================================================
+// Patient registry view + picker
+// Simulates GAS-backed patient registry
+// ============================================================
+const D_R = window.NEOFEED_DATA;
+
+function PatientRegistry({ patients, activeId, onSelect, onAdd }) {
+  const [filter, setFilter] = React.useState("");
+  const [showAdd, setShowAdd] = React.useState(false);
+  const q = filter.toLowerCase().trim();
+  const filtered = patients.filter(p =>
+    !q ||
+    (p.name || "").toLowerCase().includes(q) ||
+    (p.currentBed || "").toLowerCase().includes(q)
+  );
+
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Patient registry</h1>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ position: "relative" }}>
+            <input
+              className="inp"
+              style={{ paddingLeft: 32, width: 240, height: 40 }}
+              placeholder="ค้นหา · เลขเตียง หรือ ชื่อย่อ"
+              value={filter}
+              onChange={e => setFilter(e.target.value)} />
+            <div style={{ position: "absolute", left: 10, top: 12, color: "var(--ink-3)" }}><Icon name="search" size={14} /></div>
+          </div>
+          <button className="btn primary" style={{ height: 40, padding: "0 16px", whiteSpace: "nowrap" }} onClick={() => setShowAdd(true)}>
+            <Icon name="plus" size={14} color="#fff" /> New session
+          </button>
+        </div>
+      </div>
+
+      <div className="card">
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Bed</th>
+              <th>GA / BW</th>
+              <th>DOL</th>
+              <th>Current wt</th>
+              <th>Δ since birth</th>
+              <th>Diagnosis</th>
+              <th>Last logged</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(p => {
+              const last = p.weights[p.weights.length - 1];
+              const dol = last?.dol ?? 1;
+              const delta = last ? last.w - p.bw : 0;
+              const deltaPct = (delta / p.bw) * 100;
+              return (
+                <tr key={p.sessionId}
+                    style={{ cursor: "pointer", background: p.sessionId === activeId ? "var(--brand-bg)" : undefined }}
+                    onClick={() => onSelect(p.sessionId)}>
+                  <td><span style={{ fontWeight: 600, fontSize: 14 }}>{p.name || p.initials || "—"}</span></td>
+                  <td><span className="chip"><span className="d" />{p.currentBed}</span></td>
+                  <td><span className="num">{p.ga.toFixed(1)}</span> wk · <span className="num">{p.bw}</span> g</td>
+                  <td className="num">{dol}</td>
+                  <td className="num">{last?.w?.toLocaleString() || "—"} g</td>
+                  <td className="num" style={{ color: deltaPct < -10 ? "var(--crit)" : deltaPct < 0 ? "oklch(45% 0.13 65)" : "var(--ok)" }}>
+                    {delta >= 0 ? "+" : ""}{delta} g ({deltaPct.toFixed(1)}%)
+                  </td>
+                  <td style={{ color: "var(--ink-2)" }}>{p.diagnosis}</td>
+                  <td style={{ color: "var(--ink-3)", fontSize: 11.5 }} className="mono">{p.admissionDate}</td>
+                  <td><span className={`chip ${p.bw < 1000 ? "warn" : "ok"}`}><span className="d" />{p.status}</span></td>
+                  <td>
+                    <button className="btn sm" onClick={(e) => { e.stopPropagation(); onSelect(p.sessionId); }}>Open <Icon name="arrow" size={11} /></button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {showAdd && <NewPatientModal onClose={() => setShowAdd(false)} onSubmit={(p) => { onAdd(p); setShowAdd(false); }} />}
+    </>
+  );
+}
+
+const BED_OPTIONS = [
+  ...Array.from({ length: 12 }, (_, i) => `NICU-${i + 1}`),
+  ...Array.from({ length: 8 }, (_, i) => `SCN-${i + 1}`)
+];
+
+function NewPatientModal({ onClose, onSubmit }) {
+  const [name, setName] = React.useState("");
+  const [bw, setBw] = React.useState(1000);
+  const [ga, setGa] = React.useState(28);
+  const [hc, setHc] = React.useState(0);
+  const [len, setLen] = React.useState(0);
+  const [twin, setTwin] = React.useState("");
+  const [sex, setSex] = React.useState("boys");
+  const [bed, setBed] = React.useState("NICU-1");
+  const [dx, setDx] = React.useState("");
+
+  const sessionId = `${(name || "XX").slice(0, 2).toUpperCase()}-BW${bw}${twin ? "-" + twin : ""}`;
+
+  return (
+    <div className="picker-backdrop" onClick={onClose}>
+      <div className="picker" style={{ width: 560 }} onClick={e => e.stopPropagation()}>
+        <div className="picker-h" style={{ display: "flex", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>Register new session</div>
+          </div>
+          <button className="icon-btn" onClick={onClose}><Icon name="x" size={14} /></button>
+        </div>
+        <div style={{ padding: 18 }}>
+          <div className="row-2">
+            <div className="field">
+              <label>ชื่อย่อ <span className="unit">(อักษรแรกของชื่อ + นามสกุล)</span></label>
+              <input className="inp" maxLength={2} value={name} onChange={e => setName(e.target.value)} placeholder="เช่น  ปพ" />
+            </div>
+            <div className="field"><label>Twin suffix (optional)</label>
+              <select className="sel" value={twin} onChange={e => setTwin(e.target.value)}>
+                <option value="">—</option><option value="A">A</option><option value="B">B</option><option value="C">C</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ height: 10 }} />
+          <div className="row-3">
+            <div className="field"><label>Birth weight <span className="unit">(g)</span></label><input type="number" className="inp num" value={bw} onChange={e => setBw(parseInt(e.target.value) || 0)} /></div>
+            <div className="field"><label>GA <span className="unit">(wk.d)</span></label><input type="number" className="inp num" step={0.1} value={ga} onChange={e => setGa(parseFloat(e.target.value) || 0)} /></div>
+            <div className="field"><label>Sex</label>
+              <select className="sel" value={sex} onChange={e => setSex(e.target.value)}>
+                <option value="boys">Male</option><option value="girls">Female</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ height: 10 }} />
+          <div className="row-2">
+            <div className="field"><label>Length at birth <span className="unit">(cm)</span></label><input type="number" className="inp num" step={0.1} value={len || ""} onChange={e => setLen(parseFloat(e.target.value) || 0)} placeholder="0" /></div>
+            <div className="field"><label>HC at birth <span className="unit">(cm)</span></label><input type="number" className="inp num" step={0.1} value={hc || ""} onChange={e => setHc(parseFloat(e.target.value) || 0)} placeholder="0" /></div>
+          </div>
+          <div style={{ height: 10 }} />
+          <div className="row-2">
+            <div className="field"><label>Bed</label>
+              <select className="sel" value={bed} onChange={e => setBed(e.target.value)}>
+                {BED_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>Diagnosis</label><input className="inp" value={dx} onChange={e => setDx(e.target.value)} placeholder="ELBW · RDS …" /></div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+            <button className="btn" onClick={onClose}>Cancel</button>
+            <button className="btn primary" onClick={() => onSubmit({
+              sessionId, name, initials: name, bw, ga, twinSuffix: twin, sex,
+              currentBed: bed, diagnosis: dx, status: "Active",
+              admissionDate: new Date().toISOString().slice(0, 10),
+              dob: new Date().toISOString().slice(0, 10),
+              weights: [{ dol: 1, w: bw, l: len || null, hc: hc || null }],
+            })}>
+              <Icon name="save" size={14} color="#fff" /> Register
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Quick switcher (popup from topbar)
+function PatientPicker({ patients, activeId, onSelect, onClose }) {
+  const [q, setQ] = React.useState("");
+  const ql = q.toLowerCase().trim();
+  const filtered = patients.filter(p =>
+    !ql ||
+    (p.name || "").toLowerCase().includes(ql) ||
+    (p.currentBed || "").toLowerCase().includes(ql)
+  );
+
+  React.useEffect(() => {
+    const h = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  return (
+    <div className="picker-backdrop" onClick={onClose}>
+      <div className="picker" onClick={e => e.stopPropagation()}>
+        <div className="picker-h">
+          <Icon name="search" size={16} color="var(--ink-3)" />
+          <input placeholder="ค้นหา · เลขเตียง หรือ ชื่อย่อ" value={q} onChange={e => setQ(e.target.value)} autoFocus />
+          <button className="btn sm" onClick={onClose}>Close</button>
+        </div>
+        <div style={{ padding: "6px 0", maxHeight: 480, overflowY: "auto" }}>
+          {filtered.map(p => (
+            <div key={p.sessionId}
+              onClick={() => { onSelect(p.sessionId); onClose(); }}
+              style={{
+                display: "grid", gridTemplateColumns: "140px 1fr 100px 80px 90px", gap: 14,
+                alignItems: "center", padding: "12px 18px", cursor: "pointer",
+                background: p.sessionId === activeId ? "var(--brand-bg)" : undefined,
+                borderBottom: "1px solid var(--line-2)"
+              }}
+              onMouseEnter={e => { if (p.sessionId !== activeId) e.currentTarget.style.background = "var(--bg-2)"; }}
+              onMouseLeave={e => { if (p.sessionId !== activeId) e.currentTarget.style.background = ""; }}
+            >
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{p.name || p.initials || "—"}</span>
+              <span style={{ color: "var(--ink-2)", fontSize: 12.5 }}>{p.diagnosis}</span>
+              <span className="chip"><span className="d" />{p.currentBed}</span>
+              <span style={{ fontSize: 11.5, color: "var(--ink-3)" }} className="mono">GA {p.ga}</span>
+              <span style={{ fontSize: 11.5, color: "var(--ink-3)" }} className="mono">BW {p.bw}g</span>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div style={{ padding: "32px 18px", textAlign: "center", color: "var(--ink-3)", fontSize: 13 }}>ไม่พบผู้ป่วย</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.PatientRegistry = PatientRegistry;
+window.PatientPicker = PatientPicker;
