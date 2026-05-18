@@ -39,13 +39,15 @@ function App() {
 
   const active = patients.find((p) => p.sessionId === activeId);
   const lastWt = active?.weights?.slice(-1)[0];
-  // DOL = calculated from admissionDate to today (not stored value)
+  // DOL = admissionDOL (first weight entry) + days elapsed since admission
+  // e.g. admitted on DOL12 → today DOL = 12 + daysSinceAdmit
   const dol = (() => {
     if (!active?.admissionDate) return lastWt?.dol ?? 1;
-    const admit = new Date(active.admissionDate);
-    const today = new Date();
-    const d = Math.floor((today - admit) / 86400000) + 1;
-    return Math.max(1, d);
+    const admitDol   = active.weights?.[0]?.dol ?? 1;
+    const admit      = new Date(active.admissionDate);
+    const today      = new Date();
+    const daysSince  = Math.floor((today - admit) / 86400000);
+    return Math.max(admitDol, admitDol + daysSince);
   })();
 
   const alertCount = React.useMemo(() => {
@@ -327,6 +329,14 @@ function App() {
 
 }
 
+// ── Gestational/post-menstrual age formatter ─────────────────
+// Input: decimal weeks (e.g. 28.43). Output: "28+3"
+// Uses integer days internally → no floating point overflow (28+7 → 29+0)
+function fmtGA(weeksDecimal) {
+  const totalDays = Math.round(weeksDecimal * 7);
+  return Math.floor(totalDays / 7) + "+" + (totalDays % 7);
+}
+
 function RailItem({ icon, label, active, count, crit, onClick }) {
   return (
     <div className={`rail-item ${active ? "active" : ""} ${crit ? "crit" : ""}`} onClick={onClick}>
@@ -371,7 +381,7 @@ function PatientStrip({ patient, onSwitch, liveWeight, currentDol }) {
       <div>
         <div className="lbl">GA at birth</div>
         <div className="val num" style={{ color:"var(--brand-2)" }}>
-          {(() => { const w = Math.floor(patient.ga); const d = Math.round((patient.ga - w) * 7); return `${w}+${d}`; })()}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
+          {fmtGA(patient.ga)}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
         </div>
         <div className="sub">{patient.sex === "boys" ? "Male" : "Female"}{patient.twinSuffix ? ` · Twin ${patient.twinSuffix}` : ""}</div>
       </div>
@@ -405,7 +415,7 @@ function PatientStrip({ patient, onSwitch, liveWeight, currentDol }) {
       <div>
         <div className="lbl">PMA</div>
         <div className="val num" style={{ color:"var(--brand-2)" }}>
-          {(() => { const p = patient.ga + (displayDol - 1) / 7; const w = Math.floor(p); const d = Math.round((p - w) * 7); return `${w}+${d}`; })()}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
+          {fmtGA(patient.ga + (displayDol - 1) / 7)}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
         </div>
         <div className="sub">Day of life {displayDol}</div>
       </div>
