@@ -120,7 +120,10 @@ function SaltRow({ label, note, perKg, onChange, wtKg, unit = "mEq/kg/d" }) {
         onFocus={(e) => { focusedRef.current = true; e.target.select(); }}
         onBlur={() => { focusedRef.current = false; }} />
       <div style={{ fontSize: 11, color: "var(--ink-3)", textAlign: "right" }}>
-        = <span className="num" style={{ color: "var(--ink)", fontWeight: 600, fontSize: 12 }}>{fmt(perKg * wtKg, 1)}</span> {unit.replace("/kg/d", "/d")}
+        {wtKg > 0 && perKg > 0
+          ? <><span className="num" style={{ color: "var(--ink)", fontWeight: 600, fontSize: 12 }}>= {fmt(perKg * wtKg, 1)}</span> {unit.replace("/kg/d", "/d").replace("/kg","")}</>
+          : <span style={{ color:"var(--ink-4)", fontSize:10 }}>{perKg > 0 ? `${perKg} ${unit.split("/")[0]}/kg` : "—"}</span>
+        }
       </div>
     </div>);
 }
@@ -642,43 +645,44 @@ function Calculator({ patient, dol, onLog, onWeightChange }) {
         <div className={`accordion-body${openSteps.has(3) ? ' open' : ''}`}><div className="card-b">
           <TwoCol>
             <div>
-              <div style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: 0.05, marginBottom: 4 }}>Sodium sources</div>
+              {/* ── Na ── */}
+              <div style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: 0.05, marginBottom: 4 }}>Na (mEq/kg)</div>
               <SaltRow label="NaCl (3%)" note="0.51 mEq/mL" perKg={naCl} onChange={setNaCl} wtKg={wtKg} />
-              <PresetChips values={[1, 2, 3, 4]} current={naCl} onSelect={setNaCl} suffix=" mEq/kg" />
-              {calc.solVol.naCl > 0 && <div style={{ fontSize:11, color:"var(--brand-2)", paddingLeft:4, marginTop:-2, marginBottom:4 }}>→ {calc.solVol.naCl} mL/day</div>}
-              <SaltRow label="Na Acetate" note="for metabolic acidosis · 2 mEq/mL" perKg={naAcet} onChange={setNaAcet} wtKg={wtKg} />
-              <PresetChips values={[1, 2, 3, 4]} current={naAcet} onSelect={setNaAcet} suffix=" mEq/kg" />
-              {calc.solVol.naAcet > 0 && <div style={{ fontSize:11, color:"var(--brand-2)", paddingLeft:4, marginTop:-2, marginBottom:4 }}>→ {calc.solVol.naAcet} mL/day</div>}
+              <PresetChips values={[1, 2, 3, 4]} current={naCl} onSelect={setNaCl} />
+              {calc.solVol.naCl > 0 && <div style={{ fontSize:10.5, color:"var(--brand-2)", paddingLeft:2, marginTop:1, marginBottom:3 }}>→ {calc.solVol.naCl} mL/d</div>}
 
-              <div style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: 0.05, margin: "14px 0 4px" }}>Phosphate source</div>
-              <SaltRow label="Disodium glycerophosphate (Glycophos®)"
-                note="input Na mEq/kg → Glycophos mL = Na÷2 (1 mL = 2 mEq Na, P = 31 mg/mL)"
-                perKg={glycophosP * 2}
-                onChange={(v) => setGlycophosP(v / 2)}
-                wtKg={wtKg} unit="mEq Na/kg" />
-              <PresetChips values={[1, 2, 3, 4]} current={glycophosP * 2} onSelect={(v) => setGlycophosP(v / 2)} suffix=" mEq Na/kg" />
+              <SaltRow label="Na Acetate" note="metabolic acidosis · 2 mEq/mL" perKg={naAcet} onChange={setNaAcet} wtKg={wtKg} />
+              <PresetChips values={[1, 2, 3, 4]} current={naAcet} onSelect={setNaAcet} />
+              {calc.solVol.naAcet > 0 && <div style={{ fontSize:10.5, color:"var(--brand-2)", paddingLeft:2, marginTop:1, marginBottom:3 }}>→ {calc.solVol.naAcet} mL/d</div>}
+
+              <SaltRow label="Glycophos®" note="Na input mEq/kg · 1 mL = 2 mEq Na, P 31 mg/mL"
+                perKg={glycophosP * 2} onChange={(v) => setGlycophosP(v / 2)} wtKg={wtKg} unit="mEq Na/kg" />
+              <PresetChips values={[1, 2, 3, 4]} current={glycophosP * 2} onSelect={(v) => setGlycophosP(v / 2)} />
               {glycophosP > 0 && (
-                <div style={{ fontSize: 11.5, color: "var(--brand-2)", padding: "4px 0 2px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                  <span>↳ Glycophos adds Na:</span>
-                  <span className="num" style={{ fontWeight: 600 }}>{fmt(glycophosP * 2, 1)} mEq/kg/d Na</span>
-                  <span style={{ color: "var(--ink-3)" }}>(= {fmt(glycophosP * 2 * calc.wtKg, 1)} mEq/d)</span>
-                  <span style={{ color: "var(--ink-3)", marginLeft: 4 }}>P: {fmt(glycophosP * 31, 0)} mg/kg/d</span>
-                  <span style={{ color:"var(--brand-2)", fontWeight:700, marginLeft:8 }}>→ {fmt(calc.solVol.glycophos, 1)} mL/day</span>
+                <div style={{ fontSize:10.5, color:"var(--brand-2)", paddingLeft:2, marginTop:1, marginBottom:3 }}>
+                  → {fmt(calc.solVol.glycophos,1)} mL/d · P {fmt(glycophosP*31,0)} mg/kg/d
                 </div>
               )}
 
-              <div style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: 0.05, margin: "14px 0 4px" }}>Potassium sources</div>
+              {/* ── K ── */}
+              <div style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: 0.05, margin: "12px 0 4px" }}>K (mEq/kg)</div>
               <SaltRow label="KCl (7.46%)" note="1 mEq/mL" perKg={kCl} onChange={setKCl} wtKg={wtKg} />
-              {calc.solVol.kCl > 0 && <div style={{ fontSize:11, color:"var(--brand-2)", paddingLeft:4, marginTop:-2, marginBottom:4 }}>→ {calc.solVol.kCl} mL/day</div>}
-              <SaltRow label="K₂HPO₄" note="1 mEq K/mL · P 15.5 mg/mEq K (Glycophos® preferred)" perKg={k2hpo4} onChange={setK2HPO4} wtKg={wtKg} />
-              {calc.solVol.k2hpo4 > 0 && <div style={{ fontSize:11, color:"var(--brand-2)", paddingLeft:4, marginTop:-2, marginBottom:4 }}>→ {calc.solVol.k2hpo4} mL/day</div>}
+              <PresetChips values={[1, 2, 3, 4]} current={kCl} onSelect={setKCl} />
+              {calc.solVol.kCl > 0 && <div style={{ fontSize:10.5, color:"var(--brand-2)", paddingLeft:2, marginTop:1, marginBottom:3 }}>→ {calc.solVol.kCl} mL/d</div>}
 
-              <div style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: 0.05, margin: "14px 0 4px" }}>Mg · Ca</div>
+              <SaltRow label="K₂HPO₄" note="1 mEq K/mL · P 15.5 mg/mEq K" perKg={k2hpo4} onChange={setK2HPO4} wtKg={wtKg} />
+              <PresetChips values={[1, 2, 3, 4]} current={k2hpo4} onSelect={setK2HPO4} />
+              {calc.solVol.k2hpo4 > 0 && <div style={{ fontSize:10.5, color:"var(--brand-2)", paddingLeft:2, marginTop:1, marginBottom:3 }}>→ {calc.solVol.k2hpo4} mL/d</div>}
+
+              {/* ── Mg · Ca ── */}
+              <div style={{ fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: 0.05, margin: "12px 0 4px" }}>Mg (mEq/kg) · Ca (mg/kg)</div>
               <SaltRow label="MgSO₄ (50%)" note="4.06 mEq/mL" perKg={mgPerKg} onChange={setMgPerKg} wtKg={wtKg} />
-              {calc.solVol.mg > 0 && <div style={{ fontSize:11, color:"var(--brand-2)", paddingLeft:4, marginTop:-2, marginBottom:4 }}>→ {calc.solVol.mg} mL/day</div>}
-              <SaltRow label="Ca Gluconate 10%" note="Elemental Ca 9 mg/mL · Ca:P ~1.7:1 (mass)" perKg={caPerKg} onChange={setCaPerKg} wtKg={wtKg} unit="mg/kg/d" />
-              <PresetChips values={[32, 60, 80, 100]} current={caPerKg} onSelect={setCaPerKg} suffix=" mg/kg" />
-              {calc.solVol.ca > 0 && <div style={{ fontSize:11, color:"var(--brand-2)", paddingLeft:4, marginTop:-2, marginBottom:4 }}>→ {calc.solVol.ca} mL/day</div>}
+              <PresetChips values={[0.2, 0.4, 0.6]} current={mgPerKg} onSelect={setMgPerKg} />
+              {calc.solVol.mg > 0 && <div style={{ fontSize:10.5, color:"var(--brand-2)", paddingLeft:2, marginTop:1, marginBottom:3 }}>→ {calc.solVol.mg} mL/d</div>}
+
+              <SaltRow label="Ca Gluconate 10%" note="Elemental Ca 9 mg/mL · Ca:P ~1.7:1" perKg={caPerKg} onChange={setCaPerKg} wtKg={wtKg} unit="mg/kg/d" />
+              <PresetChips values={[32, 60, 80, 100]} current={caPerKg} onSelect={setCaPerKg} />
+              {calc.solVol.ca > 0 && <div style={{ fontSize:10.5, color:"var(--brand-2)", paddingLeft:2, marginTop:1, marginBottom:3 }}>→ {calc.solVol.ca} mL/d</div>}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <Tile label="Sodium" value={calc.naTotalDelivered} unit=" mEq/kg/d" target={tNa} status={sNa} decimals={1} max={7} />
