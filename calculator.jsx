@@ -735,7 +735,7 @@ function Calculator({ patient, dol, onLog, onWeightChange }) {
                       <option key={k} value={k}>{D.EN_DB[k].label}</option>)}
                   </optgroup>
                   <optgroup label="⚡ High-energy / Preterm formula">
-                    {["INFATRINI_30","FBM_PF_24","FBM_PF_22","BM_PF_20","FBM_INF_MIX"].filter(k => D.EN_DB[k]).map(k =>
+                    {["BM_PF_20","FBM_PF_22","FBM_PF_24","FBM_INF_MIX","INFATRINI_30"].filter(k => D.EN_DB[k]).map(k =>
                       <option key={k} value={k}>{D.EN_DB[k].label}</option>)}
                   </optgroup>
                 </select>
