@@ -39,7 +39,14 @@ function App() {
 
   const active = patients.find((p) => p.sessionId === activeId);
   const lastWt = active?.weights?.slice(-1)[0];
-  const dol = lastWt?.dol ?? 1;
+  // DOL = calculated from admissionDate to today (not stored value)
+  const dol = (() => {
+    if (!active?.admissionDate) return lastWt?.dol ?? 1;
+    const admit = new Date(active.admissionDate);
+    const today = new Date();
+    const d = Math.floor((today - admit) / 86400000) + 1;
+    return Math.max(1, d);
+  })();
 
   const alertCount = React.useMemo(() => {
     if (!active) return 0;
@@ -246,7 +253,7 @@ function App() {
       <main className="work">
         <div className="work-inner">
           {view !== "registry" && active &&
-          <PatientStrip patient={active} onSwitch={() => setPickerOpen(true)} liveWeight={calcWeights[activeId] || null} />
+          <PatientStrip patient={active} onSwitch={() => setPickerOpen(true)} liveWeight={calcWeights[activeId] || null} currentDol={dol} />
           }
 
           {view === "registry" && <PatientRegistry patients={patients} activeId={activeId} role={role} onSelect={(id) => {setActiveId(id);setView("calculator");}} onAdd={handleAddPatient} />}
@@ -330,9 +337,11 @@ function RailItem({ icon, label, active, count, crit, onClick }) {
 
 }
 
-function PatientStrip({ patient, onSwitch, liveWeight }) {
+function PatientStrip({ patient, onSwitch, liveWeight, currentDol }) {
   const last = patient.weights[patient.weights.length - 1];
   const currentW = liveWeight ?? last.w;
+  // Use calculated DOL if passed, else fall back to stored value
+  const displayDol = currentDol ?? last.dol;
   const delta = currentW - patient.bw;
   const deltaPct = delta / patient.bw * 100;
   const [wtLabel, wtColor] = patient.bw < 1000
@@ -351,7 +360,7 @@ function PatientStrip({ patient, onSwitch, liveWeight }) {
             <div className="bed">
               Bed <span className="num">{patient.currentBed}</span>
               {" · DOL "}
-              <span className="num" style={{ color:"var(--brand-2)", fontWeight:700 }}>{last.dol}</span>
+              <span className="num" style={{ color:"var(--brand-2)", fontWeight:700 }}>{displayDol}</span>
             </div>
             <div className="bed">Admit {patient.admissionDate}</div>
           </div>
@@ -396,9 +405,9 @@ function PatientStrip({ patient, onSwitch, liveWeight }) {
       <div>
         <div className="lbl">PMA</div>
         <div className="val num" style={{ color:"var(--brand-2)" }}>
-          {(patient.ga + (last.dol - 1) / 7).toFixed(1)}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
+          {(patient.ga + (displayDol - 1) / 7).toFixed(1)}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
         </div>
-        <div className="sub">Day of life {last.dol}</div>
+        <div className="sub">Day of life {displayDol}</div>
       </div>
 
       {/* ── Diagnosis ── */}
