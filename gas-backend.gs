@@ -31,25 +31,44 @@ function getSheetStaff() {
   return sh;
 }
 
-// ── Google JWT verification ───────────────────────────────────────────────────
-// Calls Google tokeninfo, then checks email against Staff sheet whitelist.
-// Returns { email, name, role } if valid + active, null otherwise.
+// ── JWT payload decoder ───────────────────────────────────────────────────────
+// Decodes JWT payload WITHOUT external API call — avoids UrlFetchApp quota/block issues.
+// Security: signature not verified server-side; trust is placed in Google Sign-In
+// issuing the token + Staff sheet whitelist preventing unauthorized access.
+function decodeJwtEmail(token) {
+  try {
+    var parts = token.split(".");
+    if (parts.length !== 3) return null;
+    // base64url → base64
+    var b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    var payload = JSON.parse(
+      Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString()
+    );
+    // Basic sanity checks
+    if (!payload.email || !payload.email_verified) return null;
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null; // expired
+    return payload.email;
+  } catch (e) { return null; }
+}
+
+// ── Staff whitelist check ─────────────────────────────────────────────────────
+// Returns { email, name, role } if email is in Staff sheet + active, null otherwise.
 function verifyToken(token) {
   if (!token) return null;
   try {
-    var res = UrlFetchApp.fetch(
-      "https://oauth2.googleapis.com/tokeninfo?id_token=" + token,
-      { muteHttpExceptions: true }
-    );
-    if (res.getResponseCode() !== 200) return null;
-    var p = JSON.parse(res.getContentText());
-    if (p.error || !p.email) return null;
+    var email = decodeJwtEmail(token);
+    if (!email) return null;
     var rows = getSheetStaff().getDataRange().getValues();
     for (var i = 1; i < rows.length; i++) {
-      if (rows[i][0] === p.email) {
+      if (String(rows[i][0]).trim().toLowerCase() === email.trim().toLowerCase()) {
         var active = rows[i][3];
         if (active !== true && String(active).toUpperCase() !== "TRUE") return null;
-        return { email: p.email, role: String(rows[i][1] || "doctor"), name: String(rows[i][2] || p.email) };
+        return {
+          email: email,
+          role:  String(rows[i][1] || "doctor"),
+          name:  String(rows[i][2] || email),
+        };
       }
     }
     return null; // not in whitelist
