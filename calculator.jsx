@@ -429,7 +429,7 @@ function Calculator({ patient, dol, onLog, onWeightChange }) {
             <div>
               <NumField label="Target fluid" unit="mL/kg/d" value={fluidTargetPerKg} onChange={setFluidTargetPerKg} step={5}
                 hint={`= ${fmt(fluidTargetPerKg * wtKg, 0)} mL/d · attending discretion`} />
-              <PresetChips values={[80, 100, 120, 150, 160, 180]} current={fluidTargetPerKg} onSelect={setFluidTargetPerKg} />
+              <PresetChips values={[60, 80, 100, 120, 150]} current={fluidTargetPerKg} onSelect={setFluidTargetPerKg} />
             </div>
             <NumField label="Other IV" unit="mL/d" value={otherIV_mL} onChange={setOtherIV_mL} step={1}
               hint={`= ${fmt(otherIV_mL / wtKg, 1)} mL/kg/d`} />
