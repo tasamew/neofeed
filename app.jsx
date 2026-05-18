@@ -150,6 +150,19 @@ function App() {
     showToast(`Session ${p.sessionId} registered${GAS_ON ? " → GAS" : " (local)"}`);
   };
 
+  // ── Edit patient (update bed, dx, status, admitDOL) ──────────
+  const handleEditPatient = (p) => {
+    setPatients(prev => prev.map(x => x.sessionId === p.sessionId ? p : x));
+    if (GAS_ON) {
+      fetch(GAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "registerPatient", token: user?.token, patient: p }),
+      }).catch(e => console.warn("GAS edit POST failed:", e));
+    }
+    showToast(`${p.name || p.sessionId} อัปเดตแล้ว`);
+  };
+
   // ── Weight update (from Fenton chart logger) ──────────────────
   const handleWeightUpdate = (sessionId, weights) => {
     setPatients(prev => prev.map(p =>
@@ -277,7 +290,7 @@ function App() {
           <PatientStrip patient={active} onSwitch={() => setPickerOpen(true)} liveWeight={calcWeights[activeId] || null} currentDol={dol} />
           }
 
-          {view === "registry" && <PatientRegistry patients={patients} activeId={activeId} role={role} onSelect={(id) => {setActiveId(id);setView("calculator");}} onAdd={handleAddPatient} />}
+          {view === "registry" && <PatientRegistry patients={patients} activeId={activeId} role={role} onSelect={(id) => {setActiveId(id);setView("calculator");}} onAdd={handleAddPatient} onEdit={handleEditPatient} />}
           {view === "admin" && <AdminDashboard patients={patients} log={log} />}
           {view === "calculator" && active &&
           <>

@@ -4,9 +4,10 @@
 // ============================================================
 const D_R = window.NEOFEED_DATA;
 
-function PatientRegistry({ patients, activeId, onSelect, onAdd }) {
+function PatientRegistry({ patients, activeId, onSelect, onAdd, onEdit }) {
   const [filter, setFilter] = React.useState("");
   const [showAdd, setShowAdd] = React.useState(false);
+  const [editPatient, setEditPatient] = React.useState(null);
   const q = filter.toLowerCase().trim();
   const filtered = patients.filter(p =>
     !q ||
@@ -73,8 +74,14 @@ function PatientRegistry({ patients, activeId, onSelect, onAdd }) {
                   <td style={{ color: "var(--ink-2)" }}>{p.diagnosis}</td>
                   <td style={{ color: "var(--ink-3)", fontSize: 11.5 }} className="mono">{p.admissionDate}</td>
                   <td><span className={`chip ${p.bw < 1000 ? "warn" : "ok"}`}><span className="d" />{p.status}</span></td>
-                  <td>
-                    <button className="btn sm" onClick={(e) => { e.stopPropagation(); onSelect(p.sessionId); }}>Open <Icon name="arrow" size={11} /></button>
+                  <td style={{ display:"flex", gap:6, justifyContent:"flex-end" }}>
+                    <button className="btn sm" onClick={(e) => { e.stopPropagation(); setEditPatient(p); }}
+                      style={{ color:"var(--ink-2)" }}>
+                      ✏️ Edit
+                    </button>
+                    <button className="btn sm" onClick={(e) => { e.stopPropagation(); onSelect(p.sessionId); }}>
+                      Open <Icon name="arrow" size={11} />
+                    </button>
                   </td>
                 </tr>
               );
@@ -83,7 +90,9 @@ function PatientRegistry({ patients, activeId, onSelect, onAdd }) {
         </table>
       </div>
 
-      {showAdd && <NewPatientModal onClose={() => setShowAdd(false)} onSubmit={(p) => { onAdd(p); setShowAdd(false); }} />}
+      {showAdd    && <NewPatientModal onClose={() => setShowAdd(false)} onSubmit={(p) => { onAdd(p); setShowAdd(false); }} />}
+      {editPatient && <EditPatientModal patient={editPatient} onClose={() => setEditPatient(null)}
+        onSubmit={(p) => { onEdit && onEdit(p); setEditPatient(null); }} />}
     </>
   );
 }
@@ -217,6 +226,84 @@ function PatientPicker({ patients, activeId, onSelect, onClose }) {
           {filtered.length === 0 && (
             <div style={{ padding: "32px 18px", textAlign: "center", color: "var(--ink-3)", fontSize: 13 }}>ไม่พบผู้ป่วย</div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Edit existing patient ────────────────────────────────────
+function EditPatientModal({ patient, onClose, onSubmit }) {
+  const [name, setName]   = React.useState(patient.name || patient.initials || "");
+  const [bed, setBed]     = React.useState(patient.currentBed || "NICU-1");
+  const [dx, setDx]       = React.useState(patient.diagnosis || "");
+  const [status, setStatus] = React.useState(patient.status || "Active");
+  const [dol1, setDol1]   = React.useState(patient.weights?.[0]?.dol ?? 1); // DOL at admission
+
+  const save = () => onSubmit({
+    ...patient,
+    name, initials: name,
+    currentBed: bed,
+    diagnosis: dx,
+    status,
+    weights: patient.weights.map((w, i) => i === 0 ? { ...w, dol: Number(dol1) || 1 } : w),
+  });
+
+  return (
+    <div className="picker-backdrop" onClick={onClose}>
+      <div className="picker" style={{ width: 480 }} onClick={e => e.stopPropagation()}>
+        <div className="picker-h" style={{ justifyContent: "space-between" }}>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>Edit session · {patient.sessionId}</div>
+          <button className="icon-btn" onClick={onClose}><Icon name="x" size={14} /></button>
+        </div>
+        <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* Fixed info — read-only */}
+          <div style={{ padding:"10px 12px", background:"var(--bg-2)", borderRadius:8, fontSize:12, color:"var(--ink-2)", display:"flex", gap:16 }}>
+            <span>GA: <strong>{patient.ga} wk</strong></span>
+            <span>BW: <strong>{patient.bw} g</strong></span>
+            <span>Sex: <strong>{patient.sex === "boys" ? "Male" : "Female"}</strong></span>
+            <span>Admit: <strong>{patient.admissionDate}</strong></span>
+          </div>
+
+          <div className="row-2">
+            <div className="field">
+              <label>ชื่อย่อ</label>
+              <input className="inp" maxLength={2} value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>DOL แรกรับ</label>
+              <input type="number" className="inp num" min={1} value={dol1} onChange={e => setDol1(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="row-2">
+            <div className="field">
+              <label>Bed</label>
+              <select className="sel" value={bed} onChange={e => setBed(e.target.value)}>
+                {BED_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label>Status</label>
+              <select className="sel" value={status} onChange={e => setStatus(e.target.value)}>
+                <option value="Active">Active</option>
+                <option value="Discharged">Discharged</option>
+                <option value="Transferred">Transferred</option>
+                <option value="Expired">Expired</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Diagnosis</label>
+            <input className="inp" value={dx} onChange={e => setDx(e.target.value)} placeholder="ELBW · RDS …" />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+            <button className="btn" onClick={onClose}>Cancel</button>
+            <button className="btn primary" onClick={save}><Icon name="save" size={14} color="#fff" /> Save changes</button>
+          </div>
         </div>
       </div>
     </div>
