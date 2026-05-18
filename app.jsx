@@ -371,7 +371,7 @@ function PatientStrip({ patient, onSwitch, liveWeight, currentDol }) {
       <div>
         <div className="lbl">GA at birth</div>
         <div className="val num" style={{ color:"var(--brand-2)" }}>
-          {patient.ga.toFixed(1)}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
+          {(() => { const w = Math.floor(patient.ga); const d = Math.round((patient.ga - w) * 7); return `${w}+${d}`; })()}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
         </div>
         <div className="sub">{patient.sex === "boys" ? "Male" : "Female"}{patient.twinSuffix ? ` · Twin ${patient.twinSuffix}` : ""}</div>
       </div>
@@ -405,7 +405,7 @@ function PatientStrip({ patient, onSwitch, liveWeight, currentDol }) {
       <div>
         <div className="lbl">PMA</div>
         <div className="val num" style={{ color:"var(--brand-2)" }}>
-          {(patient.ga + (displayDol - 1) / 7).toFixed(1)}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
+          {(() => { const p = patient.ga + (displayDol - 1) / 7; const w = Math.floor(p); const d = Math.round((p - w) * 7); return `${w}+${d}`; })()}<span style={{ fontSize:11, color:"var(--ink-3)", marginLeft:4 }}>wk</span>
         </div>
         <div className="sub">Day of life {displayDol}</div>
       </div>
