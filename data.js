@@ -228,11 +228,21 @@ const TPN_TARGETS = {
     return [50, 120];                         // Growing preterm: KCMH form 50–120 mg/kg/day
   },
 
-  // Phosphorus mg/kg/day — order form: preterm 30–70 mg/kg/day
-  // ESPGHAN 2018: DOL1 1.0–2.0 mmol/kg = 31–62 mg/kg; growing 1.5–2.3 mmol = 46–71 mg/kg
+  // Phosphorus mg/kg/day — Mihatsch 2018 (ESPGHAN 2018)
+  // DOL1: 1.0–2.0 mmol/kg × 31 = 31–62 mg/kg
+  // Growing (stable): ESPGHAN 1.5–2.0 mmol = 46–62 mg/kg; KCMH form 30–70 mg/kg
+  // ⚠️ KCMH lower bound (30) < ESPGHAN growing minimum (46) — monitor for hypophosphatemia
   p: (dol) => {
-    if (!dol || dol <= 1) return [31, 62];  // DOL 1: ESPGHAN 1.0–2.0 mmol/kg × 31
-    return [30, 70];                         // Preterm: KCMH order form range 30–70 mg/kg/day
+    if (!dol || dol <= 1) return [31, 62];  // DOL 1: ESPGHAN 1.0–2.0 mmol×31 = 31–62 mg/kg
+    return [30, 70];                         // KCMH order form 30–70 (ESPGHAN growing: 46–62)
+  },
+
+  // Magnesium mEq/kg/day — Mihatsch 2018 (ESPGHAN 2018)
+  // Mg²⁺ valence 2 → 1 mmol = 2 mEq
+  // DOL1: 0.1–0.2 mmol/kg = 0.2–0.4 mEq/kg · Growing: 0.2–0.3 mmol = 0.4–0.6 mEq/kg
+  mg: (dol) => {
+    if (!dol || dol <= 2) return [0.2, 0.4];  // Transition: 0.1–0.2 mmol×2
+    return [0.4, 0.6];                          // Growing: 0.2–0.3 mmol×2
   },
 
   // Ca:P mass ratio — ESPGHAN 2018 molar 0.8–1.3 → mass 1.0–1.7 (×40/31=1.29)
@@ -335,24 +345,37 @@ const TARGETS = {
     return [2, 5];                          // Stable: form normal requirement
   },
 
-  // Potassium mEq/kg/day — form: K⁺ 1–3 mEq/kg/day
+  // Potassium mEq/kg/day — Jochum 2018
+  // Transition D1–3: 0–3 · Intermediate D4–7: 0–3 · Stable D8+: 2–3 mEq/kg/day
   k: (dol) => {
-    if (!dol || dol <= 3) return [0, 3];
-    return [1, 3];   // form: 1–3 mEq/kg/day
+    if (!dol || dol <= 7) return [0, 3];  // Transition + Intermediate
+    return [2, 3];                         // Stable D8+: Jochum 2–3 mEq/kg/day
   },
 
-  // Calcium mg/kg/day — order form: preterm 50–120 mg/kg/day · Ca:P ~1.7:1
+  // Calcium mg/kg/day — Mihatsch 2018 (ESPGHAN 2018)
+  // DOL1: 0.8–2.0 mmol/kg = 32–80 mg/kg · Growing: 1.6–3.5 mmol = 64–140 mg/kg
+  // ⚠️ KCMH order form growing range is 50–120 mg/kg (below ESPGHAN 64–140)
   ca: (dol, isEnteral) => {
-    if (isEnteral) return [120, 200];     // ESPGHAN 2022 EN
-    if (!dol || dol <= 1) return [50, 80]; // DOL1: form lower 50, upper 80
-    return [50, 120];                      // Growing preterm: form 50–120 mg/kg/day
+    if (isEnteral) return [120, 200];       // ESPGHAN 2022 EN: 3.0–5.0 mmol×40
+    if (!dol || dol <= 1) return [32, 80];  // DOL1: Mihatsch 0.8–2.0 mmol×40=32–80 mg/kg
+    return [50, 120];                        // KCMH form: 50–120 (ESPGHAN: 64–140 mg/kg)
   },
 
-  // Phosphorus mg/kg/day — order form: preterm 30–70 mg/kg/day
+  // Phosphorus mg/kg/day — Mihatsch 2018 (ESPGHAN 2018)
+  // DOL1: 1.0–2.0 mmol/kg = 31–62 mg/kg · Growing: 1.5–2.0 mmol = 46–62 mg/kg
+  // ⚠️ KCMH order form growing range is 30–70 mg/kg (lower bound below ESPGHAN 46)
   p: (dol, isEnteral) => {
-    if (isEnteral) return [70, 115];      // ESPGHAN 2022 EN
-    if (!dol || dol <= 1) return [30, 62]; // DOL1: form lower 30
-    return [30, 70];                       // Growing preterm: form 30–70 mg/kg/day
+    if (isEnteral) return [70, 115];        // ESPGHAN 2022 EN: 2.2–3.7 mmol×31
+    if (!dol || dol <= 1) return [31, 62];  // DOL1: 1.0–2.0 mmol×31=31–62 mg/kg
+    return [30, 70];                         // KCMH form: 30–70 (ESPGHAN growing: 46–62)
+  },
+
+  // Magnesium mEq/kg/day — Mihatsch 2018 (ESPGHAN 2018)
+  // DOL1: 0.1–0.2 mmol/kg = 0.2–0.4 mEq/kg (Mg²⁺ valence 2)
+  // Growing preterm: 0.2–0.3 mmol/kg = 0.4–0.6 mEq/kg
+  mg: (dol) => {
+    if (!dol || dol <= 2) return [0.2, 0.4]; // Transition: 0.1–0.2 mmol×2
+    return [0.4, 0.6];                         // Growing: 0.2–0.3 mmol×2 — matches Mg chips
   },
 
   // Ca:P mass ratio — order form: Ca:P ~1.7:1 target
