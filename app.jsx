@@ -271,7 +271,7 @@ function App() {
 
         <div className="rail-foot">
           <div className="conn"><span className="dot" /> Sync · just now</div>
-          <div style={{ marginTop: 4 }}>V2.0 · ESPGHAN 2018/2022 · PDPA compliant</div>
+          <div style={{ marginTop: 4 }}>V2.0 · ESPGHAN 2018/2022</div>
         </div>
       </nav>
 
@@ -651,7 +651,7 @@ function LoginScreen({ onLogin }) {
             {[
               "ESPGHAN 2018 / 2022",
               "Fenton 2025 · WHO 2023",
-              "KCMH · NICU · PDPA compliant",
+              "KCMH · NICU",
             ].map(b => (
               <span key={b} className="login-badge">
                 <span className="dot" />{b}
@@ -1351,24 +1351,6 @@ function FormulasPanel() {
         </div>
       ))}
 
-      <div className="card">
-        <div className="card-h"><Icon name="info" size={14} color="var(--brand)" /> Clinical decision guide</div>
-        <div className="card-b" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-          {[
-            ["Post-NEC / Galactosemia", "HiQ LF or Enfalac LF\n(Lactose-free required)"],
-            ["EUGR / needs concentrate", "HiQ LF 24–27 kcal/oz\n(Safe: osmolality stays low)"],
-            ["Ca/P deficit on HiQ LF", "Switch to Enfalac LF 24+\nor add CaCO₃ supplement"],
-            ["Fluid restriction", "Infatrini (100 kcal/100mL)\nor concentrate LF formula"],
-            ["Complete preterm EN", "Infatrini at 100–150 mL/kg/day\n(KCMH full feeds at 100 mL/kg)"],
-            ["Na always low", "All LF formulas need Na supplement\n(NaCl or Sodamint)"],
-          ].map(([title, body]) => (
-            <div key={title} style={{ background: "var(--bg-2)", borderRadius: 8, padding: "10px 12px" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--brand-2)", marginBottom: 4 }}>{title}</div>
-              <div style={{ fontSize: 12, color: "var(--ink-2)", whiteSpace: "pre-line" }}>{body}</div>
-            </div>
-          ))}
-        </div>
-      </div>
     </>
   );
 }
