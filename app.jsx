@@ -309,11 +309,6 @@ function App() {
                   <button className="btn" onClick={() => setView("guidelines")}><Icon name="info" size={14} /> Reference values</button>
                 </div>
               </div>
-              {tweaks.showDisclaimer && (
-                <div className="disclaimer-bar">
-                  ⚠️ NeoFeed V2 เป็น clinical decision support tool — คำสั่งทั้งหมดต้องผ่านการตรวจสอบโดยแพทย์เจ้าของไข้ก่อนดำเนินการ
-                </div>
-              )}
               <Calculator patient={active} dol={dol} onLog={handleLogToGAS}
                 onWeightChange={(w) => setCalcWeights(prev => ({ ...prev, [activeId]: w }))} />
             </>
@@ -350,9 +345,6 @@ function App() {
           options={["#2a7a8c", "#3b6f9e", "#4a5da3", "#2f7a5f", "#7a3f5e"]} />
         </TweakSection>
         <TweakSection label="Behavior">
-          <TweakToggle label="Show CDSS disclaimer"
-          value={tweaks.showDisclaimer}
-          onChange={(v) => setTweak('showDisclaimer', v)} />
         </TweakSection>
       </TweaksPanel>
 
