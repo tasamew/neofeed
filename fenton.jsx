@@ -103,16 +103,27 @@ function FentonChart({ patient, onUpdate }) {
   for (let v = 0; v <= yMax; v += niceStep) yTicks.push(v);
 
   // Patient plot
-  const weights = patient?.weights || [];
+  // Weight uses patient.weights[].w
+  // Length/HC: data lives in patient.lengths[]/patient.hcs[] (separate arrays),
+  //   OR inline as w.l/w.hc on weights entries (saved by MeasurementLogger) — merge both.
   const pma0 = patient?.ga || 28;
-  const points = weights.map(w => {
-    const pma = pma0 + (w.dol - 1) / 7;
-    let value;
-    if (metric === "weight") value = w.w;
-    else if (metric === "length") value = w.l;
-    else value = w.hc;
-    return { pma, value, dol: w.dol };
-  }).filter(p => p.pma >= xMin && p.pma <= xMax && p.value != null);
+  const points = (() => {
+    if (metric === "weight") {
+      return (patient?.weights || []).map(w => ({
+        pma: pma0 + (w.dol - 1) / 7, value: w.w, dol: w.dol,
+      }));
+    }
+    const standalone = (metric === "length" ? (patient?.lengths || []) : (patient?.hcs || []))
+      .map(e => ({ dol: e.dol, value: e.v }));
+    const inline = (patient?.weights || [])
+      .filter(w => (metric === "length" ? w.l : w.hc) != null)
+      .map(w => ({ dol: w.dol, value: metric === "length" ? w.l : w.hc }));
+    const byDol = new Map(standalone.map(e => [e.dol, e.value]));
+    inline.forEach(e => byDol.set(e.dol, e.value)); // inline (fresher) wins
+    return [...byDol.entries()]
+      .map(([dol, value]) => ({ pma: pma0 + (dol - 1) / 7, value, dol }))
+      .sort((a, b) => a.dol - b.dol);
+  })().filter(p => p.pma >= xMin && p.pma <= xMax && p.value != null);
 
   // current percentile estimate
   const currentPercentile = (() => {
