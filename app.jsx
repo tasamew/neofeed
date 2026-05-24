@@ -18,8 +18,7 @@ function App() {
 
   // user = { name, role, email, token } — stored in sessionStorage (clears on tab close)
   const [user, setUser] = React.useState(() => {
-   const [user, setUser] = React.useState(() => {
-  try {
+    try {
       const s = sessionStorage.getItem("neofeed_session");
       return s ? JSON.parse(s) : null;
     } catch { return null; }
