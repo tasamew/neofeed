@@ -84,8 +84,8 @@
     display: grid;
     grid-template-columns: var(--rail-w) 1fr;
     grid-template-rows: var(--header-h) 1fr;
-    min-height: 100vh;
-    min-height: 100dvh; /* iOS Safari: excludes collapsing browser chrome */
+    height: 100vh;
+    height: 100dvh; /* iOS Safari: excludes collapsing browser chrome */
   }
   .topbar {
     grid-column: 1 / -1;
@@ -197,7 +197,7 @@
   .rail-foot .conn .dot { width: 6px; height: 6px; background: var(--ok); border-radius: 999px; }
 
   /* ============ WORKSPACE ============ */
-  .work { overflow: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+  .work { overflow: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
   .work-inner { padding: 18px 22px 60px; max-width: 1480px; }
 
   .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
