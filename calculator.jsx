@@ -177,11 +177,14 @@ function Calculator({ patient, dol, onLog, onWeightChange }) {
   const [heparinUmL,    setHeparinUmL]    = useState(1);   // default 1 U/mL per KCMH practice
 
   // Step 6 — Enteral Supplements
-  const [suppVitD,   setSuppVitD]   = useState(0);    // IU/kg/day
-  const [suppCa,     setSuppCa]     = useState(0);    // mg/kg/day elem Ca
-  const [suppPO4,    setSuppPO4]    = useState(0);    // mmol/kg/day
-  const [suppMTV,    setSuppMTV]    = useState(false); // MTV drops 1 mL/day
-  const [suppFerdek, setSuppFerdek] = useState(0);    // mg/kg/day elem Fe
+  const [suppVitD,   setSuppVitD]   = useState(0);               // IU/kg/day
+  const [suppCa,     setSuppCa]     = useState(0);               // mg/kg/day elem Ca
+  const [suppCaType, setSuppCaType] = useState("CA_CACO3_350");  // product key
+  const [suppPO4,    setSuppPO4]    = useState(0);               // mmol/kg/day
+  const [suppPO4Type,setSuppPO4Type]= useState("PO4_PHOSPHATE"); // product key
+  const [suppMTV,    setSuppMTV]    = useState(false);           // Munti-vim 1 mL/day
+  const [suppFerdek, setSuppFerdek] = useState(0);               // mg/kg/day elem Fe
+  const [suppFeType, setSuppFeType] = useState("FE_FERDEK");     // product key
 
   // ── Accordion — which step cards are expanded ──────────────────
   // Only Step 1 open by default; others collapsed until user opens them
@@ -233,9 +236,12 @@ function Calculator({ patient, dol, onLog, onWeightChange }) {
     setHeparinUmL(restored?.heparinUmL ?? 1);
     setSuppVitD(restored?.suppVitD ?? 0);
     setSuppCa(restored?.suppCa ?? 0);
+    setSuppCaType(restored?.suppCaType ?? "CA_CACO3_350");
     setSuppPO4(restored?.suppPO4 ?? 0);
+    setSuppPO4Type(restored?.suppPO4Type ?? "PO4_PHOSPHATE");
     setSuppMTV(restored?.suppMTV ?? false);
     setSuppFerdek(restored?.suppFerdek ?? 0);
+    setSuppFeType(restored?.suppFeType ?? "FE_FERDEK");
 
     if (restored?.savedAt) {
       setPrefilledFrom({ savedAt: restored.savedAt, dol: restored.dol });
@@ -252,7 +258,7 @@ function Calculator({ patient, dol, onLog, onWeightChange }) {
     naCl, naAcet, glycophosP, kCl, k2hpo4, mgPerKg, caPerKg, extraP_mg_kg,
     enType, enVol, enFreq, isMEN,
     inclSoluvit, inclPeditrace, inclAddamel, heparinUmL,
-    suppVitD, suppCa, suppPO4, suppMTV, suppFerdek,
+    suppVitD, suppCa, suppCaType, suppPO4, suppPO4Type, suppMTV, suppFerdek, suppFeType,
     dol, savedAt: new Date().toISOString(),
   });
   const toggleStep = (n) => setOpenSteps(prev => {
@@ -979,56 +985,133 @@ function Calculator({ patient, dol, onLog, onWeightChange }) {
         </div>
         <div className={`accordion-body${openSteps.has(6) ? ' open' : ''}`}><div className="card-b">
           <div className="guidelines-grid">
-            {/* Left column */}
+            {/* ── Left column ── */}
             <div>
-              <div className="sub-h">Vitamin D</div>
-              <NumField label="Vitamin D drops" unit="IU/kg/day" value={suppVitD} onChange={setSuppVitD} step={100}
+
+              {/* Vitamin D */}
+              <div className="sub-h">Vitamin D drops</div>
+              <NumField label="Vitamin D" unit="IU/kg/day" value={suppVitD} onChange={setSuppVitD} step={100}
                 hint={suppVitD > 0 && wtKg > 0
-                  ? `= ${Math.round(suppVitD * wtKg)} IU/day · ESPGHAN 2022: 400–700 IU/kg/day`
+                  ? `= ${Math.round(suppVitD * wtKg)} IU/day · ESPGHAN 2022: 400–700 IU/kg`
                   : "ESPGHAN 2022: 400–700 IU/kg/day"} />
               <PresetChips values={[400, 500, 600, 700]} current={suppVitD} onSelect={setSuppVitD} suffix=" IU/kg" />
+              {suppMTV && suppVitD > 0 && (
+                <div style={{ fontSize: 10.5, color: "var(--warn)", marginTop: 3 }}>
+                  ⚠ Munti-vim มี D3 400 IU อยู่แล้ว — รวมเป็น {Math.round((suppVitD + 400) * wtKg)} IU/day
+                </div>
+              )}
 
+              {/* Calcium */}
               <div className="sub-h" style={{ marginTop: 14 }}>Calcium (oral)</div>
-              <NumField label="Ca carbonate / Ca syrup" unit="mg/kg/day elem Ca" value={suppCa} onChange={setSuppCa} step={10}
-                hint={suppCa > 0 && wtKg > 0
-                  ? `= ${Math.round(suppCa * wtKg)} mg/day elem Ca`
-                  : "ESPGHAN 2022 total target: 120–200 mg/kg/day"} />
+              <div className="field" style={{ marginBottom: 6 }}>
+                <label>ผลิตภัณฑ์</label>
+                <select className="sel" style={{ height: 38 }} value={suppCaType} onChange={e => setSuppCaType(e.target.value)}>
+                  {Object.entries(D.SUPP_DB).filter(([,v]) => v.category === "ca").map(([k,v]) =>
+                    <option key={k} value={k}>{v.label} — {v.ca_mg_per_unit} mg elem Ca/tab</option>
+                  )}
+                </select>
+              </div>
+              <NumField label="ปริมาณ elem Ca" unit="mg/kg/day" value={suppCa} onChange={setSuppCa} step={10}
+                hint={(() => {
+                  const prod = D.SUPP_DB[suppCaType];
+                  const totalMg = suppCa * wtKg;
+                  const tabs = prod && totalMg > 0 ? totalMg / prod.ca_mg_per_unit : 0;
+                  return suppCa > 0 && wtKg > 0
+                    ? `= ${Math.round(totalMg)} mg/day · ${fmt(tabs, 2)} tab/day (${prod?.label})`
+                    : `ESPGHAN 2022 target: 120–200 mg/kg/day · ${D.SUPP_DB[suppCaType]?.note || ""}`;
+                })()} />
               <PresetChips values={[50, 80, 100, 120]} current={suppCa} onSelect={setSuppCa} />
 
+              {/* Phosphate */}
               <div className="sub-h" style={{ marginTop: 14 }}>Phosphate (oral)</div>
-              <NumField label="Oral phosphate solution" unit="mmol/kg/day" value={suppPO4} onChange={setSuppPO4} step={0.5}
-                hint={suppPO4 > 0 && wtKg > 0
-                  ? `= ${(suppPO4 * wtKg).toFixed(1)} mmol/day · ${(suppPO4 * wtKg * 31).toFixed(0)} mg P`
-                  : "ESPGHAN 2022 total target: 2.2–3.7 mmol/kg/day"} />
+              <div className="field" style={{ marginBottom: 6 }}>
+                <label>ผลิตภัณฑ์</label>
+                <select className="sel" style={{ height: 38 }} value={suppPO4Type} onChange={e => setSuppPO4Type(e.target.value)}>
+                  {Object.entries(D.SUPP_DB).filter(([,v]) => v.category === "po4").map(([k,v]) =>
+                    <option key={k} value={k}>{v.label} · {v.unitVol} mL = {(v.po4_mmol_per_ml * v.unitVol).toFixed(2)} mmol P</option>
+                  )}
+                </select>
+              </div>
+              <NumField label="Phosphate" unit="mmol/kg/day" value={suppPO4} onChange={setSuppPO4} step={0.5}
+                hint={(() => {
+                  const prod = D.SUPP_DB[suppPO4Type];
+                  const totalMmol = suppPO4 * wtKg;
+                  const vol = prod && totalMmol > 0 ? totalMmol / prod.po4_mmol_per_ml : 0;
+                  return suppPO4 > 0 && wtKg > 0
+                    ? `= ${fmt(totalMmol, 1)} mmol/day · ${fmt(vol, 1)} mL/day (${prod?.label})`
+                    : `ESPGHAN 2022 target: 2.2–3.7 mmol/kg/day · ${D.SUPP_DB[suppPO4Type]?.note || ""}`;
+                })()} />
               <PresetChips values={[1, 1.5, 2, 2.5]} current={suppPO4} onSelect={setSuppPO4} />
+
             </div>
 
-            {/* Right column */}
+            {/* ── Right column ── */}
             <div>
-              <div className="sub-h">Multivitamin drops</div>
-              <Chk label="MTV drops (Poly-Vi-Sol / ADEKs)" value={suppMTV} onChange={setSuppMTV}
-                hint="1 mL/day · water + fat soluble vitamins · ให้พร้อมอาหาร" />
 
-              <div className="sub-h" style={{ marginTop: 14 }}>Iron — Ferdek®</div>
-              <NumField label="Ferdek® / iron (oral)" unit="mg/kg/day elem Fe" value={suppFerdek} onChange={setSuppFerdek} step={0.5}
-                hint={suppFerdek > 0 && wtKg > 0
-                  ? `= ${(suppFerdek * wtKg).toFixed(1)} mg elem Fe/day · เริ่มอายุ 2–4 สัปดาห์`
-                  : "ESPGHAN 2022: 2–3 mg/kg/day (max 6) · เริ่มอายุ 2–4 สัปดาห์"} />
+              {/* Munti-vim Drop */}
+              <div className="sub-h">Multivitamin — Munti-vim Drop</div>
+              <Chk label="Munti-vim Drop 1 mL/day" value={suppMTV} onChange={setSuppMTV}
+                hint="Vit D3 400 IU · Vit A 2000 IU · B1/B2/B3/B6/B12 · Vit C 40 mg · 1 mL/day · ให้พร้อมอาหาร" />
+
+              {/* Iron */}
+              <div className="sub-h" style={{ marginTop: 14 }}>Iron (oral)</div>
+              <div className="field" style={{ marginBottom: 6 }}>
+                <label>ผลิตภัณฑ์</label>
+                <select className="sel" style={{ height: 38 }} value={suppFeType} onChange={e => setSuppFeType(e.target.value)}>
+                  {Object.entries(D.SUPP_DB).filter(([,v]) => v.category === "fe").map(([k,v]) =>
+                    <option key={k} value={k}>{v.label} · {v.fe_mg_per_ml} mg elem Fe/mL</option>
+                  )}
+                </select>
+              </div>
+              <NumField label="Iron" unit="mg/kg/day elem Fe" value={suppFerdek} onChange={setSuppFerdek} step={0.5}
+                hint={(() => {
+                  const prod = D.SUPP_DB[suppFeType];
+                  const totalMg = suppFerdek * wtKg;
+                  const vol = prod && totalMg > 0 ? totalMg / prod.fe_mg_per_ml : 0;
+                  return suppFerdek > 0 && wtKg > 0
+                    ? `= ${fmt(totalMg, 1)} mg elem Fe/day · ${fmt(vol, 2)} mL/day (${prod?.label})`
+                    : `ESPGHAN 2022: 2–3 mg/kg/day · เริ่มอายุ 2–4 สัปดาห์`;
+                })()} />
               <PresetChips values={[2, 3, 4]} current={suppFerdek} onSelect={setSuppFerdek} />
 
-              {/* Summary box */}
+              {/* Summary */}
               {(suppVitD > 0 || suppCa > 0 || suppPO4 > 0 || suppMTV || suppFerdek > 0) && (
                 <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--brand-bg)",
                   border: "1px solid var(--brand-line)", borderRadius: 8 }}>
                   <div style={{ fontSize: 11, color: "var(--ink-3)", fontWeight: 600,
-                    textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Supplement summary / day</div>
-                  {suppVitD   > 0 && wtKg > 0 && <MiniReadout label="Vitamin D" value={Math.round(suppVitD * wtKg)} unit="IU/day" />}
-                  {suppCa     > 0 && wtKg > 0 && <MiniReadout label="Ca oral" value={Math.round(suppCa * wtKg)} unit="mg elem Ca/day" />}
-                  {suppPO4    > 0 && wtKg > 0 && <MiniReadout label="Phosphate oral" value={fmt(suppPO4 * wtKg, 1)} unit="mmol/day" />}
-                  {suppMTV         && <MiniReadout label="MTV drops" value="1" unit="mL/day" />}
-                  {suppFerdek > 0 && wtKg > 0 && <MiniReadout label="Ferdek (Fe)" value={fmt(suppFerdek * wtKg, 1)} unit="mg elem Fe/day" />}
+                    textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+                    Supplement order / day
+                  </div>
+                  {suppMTV && (
+                    <MiniReadout label="Munti-vim Drop" value="1" unit="mL/day" color="var(--brand-2)" />
+                  )}
+                  {suppVitD > 0 && wtKg > 0 && (
+                    <MiniReadout label="Vitamin D" value={`${Math.round(suppVitD * wtKg)} IU`} unit="/day" color="var(--brand-2)" />
+                  )}
+                  {suppCa > 0 && wtKg > 0 && (() => {
+                    const prod = D.SUPP_DB[suppCaType];
+                    const tabs = prod ? (suppCa * wtKg) / prod.ca_mg_per_unit : 0;
+                    return <MiniReadout label={`Ca · ${prod?.label}`}
+                      value={`${Math.round(suppCa * wtKg)} mg`}
+                      unit={`→ ${fmt(tabs, 2)} tab/day`} color="var(--brand-2)" />;
+                  })()}
+                  {suppPO4 > 0 && wtKg > 0 && (() => {
+                    const prod = D.SUPP_DB[suppPO4Type];
+                    const vol = prod ? (suppPO4 * wtKg) / prod.po4_mmol_per_ml : 0;
+                    return <MiniReadout label={`PO₄ · ${prod?.label}`}
+                      value={`${fmt(suppPO4 * wtKg, 1)} mmol`}
+                      unit={`→ ${fmt(vol, 1)} mL/day`} color="var(--brand-2)" />;
+                  })()}
+                  {suppFerdek > 0 && wtKg > 0 && (() => {
+                    const prod = D.SUPP_DB[suppFeType];
+                    const vol = prod ? (suppFerdek * wtKg) / prod.fe_mg_per_ml : 0;
+                    return <MiniReadout label={`Fe · ${prod?.label}`}
+                      value={`${fmt(suppFerdek * wtKg, 1)} mg`}
+                      unit={`→ ${fmt(vol, 2)} mL/day`} color="var(--brand-2)" />;
+                  })()}
                 </div>
               )}
+
             </div>
           </div>
         </div></div>

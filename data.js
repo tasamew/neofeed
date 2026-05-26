@@ -826,11 +826,119 @@ function liveDol(patient) {
 }
 
 // ============================================================
+// KCMH Enteral Supplement Formulary
+// Source: Chula Pediatric Nutrition Handbook 3rd edition
+// ============================================================
+const SUPP_DB = {
+
+  // ── Multivitamin drops ──────────────────────────────────────
+  MTV_MUNTIVIM: {
+    label: "Munti-vim Drop",
+    category: "mtv",
+    form: "drop", unitVol: 1, unitLabel: "mL",
+    dose_default: 1,                  // 1 mL/day (fixed dose)
+    vitD_iu_per_ml:  400,
+    vitA_iu_per_ml:  2000,
+    vitC_mg_per_ml:  40,
+    b1_mg_per_ml:    2,
+    b2_mg_per_ml:    2,
+    b3_mg_per_ml:    15,
+    b6_mg_per_ml:    1.8,
+    b12_mcg_per_ml:  5,
+    ca_mg_per_ml:    5,
+    note: "1 mL/day · มี Vit D3 400 IU — นับรวมกับ supplement Vit D ด้วย",
+  },
+
+  // ── Phosphate solutions (oral) ──────────────────────────────
+  // Phosphate Solution: 5 mL = Na 4.94 mEq + PO4 265 mg (8.55 mmol)
+  PO4_PHOSPHATE: {
+    label: "Phosphate Solution",
+    category: "po4",
+    form: "solution", unitVol: 5, unitLabel: "mL",
+    po4_mg_per_ml:   53,              // 265 mg / 5 mL
+    po4_mmol_per_ml: 265 / 31 / 5,   // ≈ 1.710 mmol/mL
+    na_meq_per_ml:   4.94 / 5,       // ≈ 0.988 mEq/mL
+    k_meq_per_ml:    0,
+    note: "5 mL = PO4 265 mg (8.55 mmol) + Na 4.94 mEq",
+  },
+  // Neutral Phos: 5 mL = Na 0.475 mEq + K 0.475 mEq + PO4 72 mg (2.32 mmol)
+  PO4_NEUTRAL: {
+    label: "Neutral Phos Solution",
+    category: "po4",
+    form: "solution", unitVol: 5, unitLabel: "mL",
+    po4_mg_per_ml:   14.4,
+    po4_mmol_per_ml: 72 / 31 / 5,    // ≈ 0.465 mmol/mL
+    na_meq_per_ml:   0.475 / 5,      // ≈ 0.095 mEq/mL
+    k_meq_per_ml:    0.475 / 5,
+    note: "5 mL = PO4 72 mg (2.32 mmol) + Na 0.475 mEq + K 0.475 mEq",
+  },
+
+  // ── Iron drops ──────────────────────────────────────────────
+  // Ferdek Drop: 1 mL = 25 mg elemental Fe (ferric iron complex)
+  FE_FERDEK: {
+    label: "Ferdek Drop",
+    category: "fe",
+    form: "drop", unitVol: 1, unitLabel: "mL",
+    fe_mg_per_ml:    25,
+    note: "25 mg elem Fe/mL · ESPGHAN 2022: 2–3 mg/kg/day · เริ่มอายุ 2–4 สัปดาห์",
+  },
+  // Ferrokid: 1 mL = 5 mg elemental Fe
+  FE_FERROKID: {
+    label: "Ferrokid Suspension",
+    category: "fe",
+    form: "suspension", unitVol: 1, unitLabel: "mL",
+    fe_mg_per_ml:    5,
+    note: "5 mg elem Fe/mL",
+  },
+
+  // ── Calcium oral ─────────────────────────────────────────────
+  // CaCO3 350 mg tab: 140 mg elem Ca (7 mEq) per tab
+  CA_CACO3_350: {
+    label: "CaCO₃ 350 mg",
+    category: "ca",
+    form: "tab", unitVol: 1, unitLabel: "tab",
+    ca_mg_per_unit:  140,             // elemental Ca per tab
+    ca_meq_per_unit: 7,
+    note: "140 mg elem Ca/tab (7 mEq) · บด + ละลายน้ำให้นม",
+  },
+  // CaCO3 1000 mg tab: 400 mg elem Ca (20 mEq)
+  CA_CACO3_1000: {
+    label: "CaCO₃ 1000 mg",
+    category: "ca",
+    form: "tab", unitVol: 1, unitLabel: "tab",
+    ca_mg_per_unit:  400,
+    ca_meq_per_unit: 20,
+    note: "400 mg elem Ca/tab (20 mEq)",
+  },
+  // Calcetate 1000 mg: 253 mg elem Ca (12.6 mEq)
+  CA_CALCETATE: {
+    label: "Calcetate 1000 mg",
+    category: "ca",
+    form: "tab", unitVol: 1, unitLabel: "tab",
+    ca_mg_per_unit:  253,
+    ca_meq_per_unit: 12.6,
+    note: "253 mg elem Ca/tab (12.6 mEq)",
+  },
+
+  // ── Vitamin D drops ──────────────────────────────────────────
+  // (Generic — D3 drops vary by brand; user inputs IU/kg/day and concentration)
+  VITD_GENERIC: {
+    label: "Vitamin D3 drops (generic)",
+    category: "vitd",
+    form: "drop", unitVol: 1, unitLabel: "drop",
+    vitD_iu_per_drop: 400,           // typical Thai market: 400 IU/drop
+    note: "ตรวจสอบ concentration ตามยี่ห้อ · เป้าหมาย 400–700 IU/kg/day (ESPGHAN 2022)",
+  },
+};
+
+// ============================================================
 // Export
 // ============================================================
 window.NEOFEED_DATA = {
   // Enteral formula database
   EN_DB,
+  // KCMH supplement formulary
+  SUPP_DB,
   // Product reference
   AA_PRODUCTS, LIPID_PRODUCTS, SALT_SOURCES, ADDITIVE_PRODUCTS,
   // Target systems (backward-compatible function API)
