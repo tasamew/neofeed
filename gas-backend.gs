@@ -52,12 +52,17 @@ function decodeJwtEmail(token) {
 
 // ── Staff whitelist check ─────────────────────────────────────────────────────
 // Returns { email, name, role } if email is in Staff sheet + active, null otherwise.
+// First-run bootstrap: if Staff sheet has no active members, auto-register the
+// verified Google user as admin (once) so setup doesn't require sheet editing.
 function verifyToken(token) {
   if (!token) return null;
   try {
     var email = decodeJwtEmail(token);
     if (!email) return null;
-    var rows = getSheetStaff().getDataRange().getValues();
+    var sh = getSheetStaff();
+    var rows = sh.getDataRange().getValues();
+
+    // Check whitelist first
     for (var i = 1; i < rows.length; i++) {
       if (String(rows[i][0]).trim().toLowerCase() === email.trim().toLowerCase()) {
         var active = rows[i][3];
@@ -69,6 +74,20 @@ function verifyToken(token) {
         };
       }
     }
+
+    // Bootstrap: no active staff → first verified Google user becomes admin
+    var hasActive = false;
+    for (var j = 1; j < rows.length; j++) {
+      if (rows[j][3] === true || String(rows[j][3]).toUpperCase() === "TRUE") {
+        hasActive = true; break;
+      }
+    }
+    if (!hasActive) {
+      var name = email.split("@")[0];
+      sh.appendRow([email, "admin", name, true]);
+      return { email: email, role: "admin", name: name };
+    }
+
     return null; // not in whitelist
   } catch (e) { return null; }
 }

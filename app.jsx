@@ -24,7 +24,8 @@ function App() {
       const s = sessionStorage.getItem("neofeed_session");
       if (s) return JSON.parse(s);
     } catch {}
-    return { name: "Local user", role: "doctor", email: "", token: "" };
+    // GAS_ON → require real Google login; local dev → stub user
+    return GAS_ON ? null : { name: "Local user", role: "doctor", email: "", token: "" };
   });
   const role     = user?.role || null;
   const authName = user?.name || "";
