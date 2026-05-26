@@ -84,8 +84,8 @@
     display: grid;
     grid-template-columns: var(--rail-w) 1fr;
     grid-template-rows: var(--header-h) 1fr;
-    min-height: 100vh;
-    min-height: 100dvh; /* iOS Safari: excludes collapsing browser chrome */
+    height: 100dvh;
+    overflow: hidden;
   }
   .topbar {
     grid-column: 1 / -1;
@@ -954,7 +954,7 @@
   <!-- Google Sign-In SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <!-- cache:26200521-fixes -->
+  <!-- cache:26200526-scroll -->
   <!-- App config — edit these two lines, do NOT hardcode in app.jsx -->
   <script>
     window.NEOFEED_CLIENT_ID = "750019806043-imunne8ndetdesii70o3t1vnr0ta2br4.apps.googleusercontent.com";
