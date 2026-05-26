@@ -34,7 +34,7 @@ function App() {
   const [patients, setPatients] = React.useState(GAS_ON ? [] : D_A.MOCK_PATIENTS);
   const [log, setLog] = React.useState(GAS_ON ? {} : D_A.MOCK_DAILY_LOG);
   const [activeId, setActiveId] = React.useState(GAS_ON ? null : D_A.MOCK_PATIENTS[0].sessionId);
-  const [view, setView] = React.useState("calculator");
+  const [view, setView] = React.useState("registry");
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [syncState, setSyncState] = React.useState(GAS_ON ? "loading" : "local"); // local | loading | ok | error
   const [lastSync, setLastSync] = React.useState(null);
@@ -342,7 +342,7 @@ function App() {
           <PatientStrip patient={active} onSwitch={() => setPickerOpen(true)} liveWeight={calcWeights[activeId] || null} currentDol={dol} />
           }
 
-          {view === "registry" && <PatientRegistry patients={patients} activeId={activeId} role={role} onSelect={(id) => {setActiveId(id);setView("calculator");}} onAdd={handleAddPatient} onEdit={handleEditPatient} />}
+          {view === "registry" && <PatientRegistry patients={patients} activeId={activeId} role={role} log={log} onSelect={(id) => {setActiveId(id);setView("calculator");}} onAdd={handleAddPatient} onEdit={handleEditPatient} />}
           {view === "admin" && <AdminDashboard patients={patients} log={log} />}
           {view === "calculator" && active &&
           <>

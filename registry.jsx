@@ -4,7 +4,7 @@
 // ============================================================
 const D_R = window.NEOFEED_DATA;
 
-function PatientRegistry({ patients, activeId, onSelect, onAdd, onEdit }) {
+function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit }) {
   const [filter, setFilter] = React.useState("");
   const [showAdd, setShowAdd] = React.useState(false);
   const [editPatient, setEditPatient] = React.useState(null);
@@ -95,7 +95,7 @@ function PatientRegistry({ patients, activeId, onSelect, onAdd, onEdit }) {
               <th>Current wt</th>
               <th>Δ since birth</th>
               <th>Diagnosis</th>
-              <th>Last logged</th>
+              <th>Last entry</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -103,9 +103,14 @@ function PatientRegistry({ patients, activeId, onSelect, onAdd, onEdit }) {
           <tbody>
             {filtered.map(p => {
               const last = p.weights[p.weights.length - 1];
-              const dol = D_R.liveDol(p); // auto-computed from admissionDate
+              const dol = D_R.liveDol(p);
               const delta = last ? last.w - p.bw : 0;
               const deltaPct = (delta / p.bw) * 100;
+              const entries = log[p.sessionId] || [];
+              const lastEntry = entries[entries.length - 1];
+              const lastEntryLabel = lastEntry
+                ? `DOL ${lastEntry.dol} · ${window.NEOFEED_FMT_DATE?.(lastEntry.ts) || lastEntry.ts}`
+                : "—";
               return (
                 <tr key={p.sessionId}
                     style={{ cursor: "pointer", background: p.sessionId === activeId ? "var(--brand-bg)" : undefined }}
@@ -119,7 +124,7 @@ function PatientRegistry({ patients, activeId, onSelect, onAdd, onEdit }) {
                     {delta >= 0 ? "+" : ""}{delta} g ({deltaPct.toFixed(1)}%)
                   </td>
                   <td style={{ color: "var(--ink-2)" }}>{p.diagnosis}</td>
-                  <td style={{ color: "var(--ink-3)", fontSize: 11.5 }}>{window.NEOFEED_FMT_DATE?.(p.admissionDate) || p.admissionDate}</td>
+                  <td style={{ color: "var(--ink-3)", fontSize: 11.5 }}>{lastEntryLabel}</td>
                   <td><span className={`chip ${p.bw < 1000 ? "warn" : "ok"}`}><span className="d" />{p.status}</span></td>
                   <td style={{ display:"flex", gap:6, justifyContent:"flex-end" }}>
                     <button className="btn sm" onClick={(e) => { e.stopPropagation(); setEditPatient(p); }}
