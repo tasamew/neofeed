@@ -3,6 +3,14 @@
 // ============================================================
 const D_A = window.NEOFEED_DATA;
 
+// First displayable character: skip Thai leading vowels (เ แ โ ใ ไ), return first consonant/letter
+const THAI_LEAD = new Set(['เ','แ','โ','ใ','ไ']);
+function firstChar(str) {
+  if (!str) return "?";
+  for (const ch of str) { if (!THAI_LEAD.has(ch)) return ch.toUpperCase(); }
+  return str[0].toUpperCase();
+}
+
 // ── Config (set in NeoFeed.html window.NEOFEED_* — do NOT hardcode here) ──────
 const GAS_URL  = window.NEOFEED_GAS_URL || "";
 const GAS_ON   = GAS_URL.length > 10;
@@ -294,7 +302,7 @@ function App() {
 
 
         <div className="user" onClick={handleLogout} style={{ cursor: "pointer" }} title="คลิกเพื่อออกจากระบบ">
-          <div className="av">{(authName || "?").slice(0,2).toUpperCase()}</div>
+          <div className="av">{firstChar(authName || user?.email || "?")}</div>
           <div>
             <div className="name">{authName || user?.email || "—"}</div>
             <div className="role">{role === "admin" ? "Administrator · KCMH" : "Neonatology · KCMH"}</div>

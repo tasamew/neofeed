@@ -182,17 +182,17 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
       <div className="card patient-table">
         <table className="tbl" style={{ tableLayout: "fixed", width: "100%" }}>
           <colgroup>
-            <col style={{ width: 88 }} />   {/* Bed */}
-            <col style={{ width: 72 }} />   {/* Name */}
-            <col style={{ width: 58 }} />   {/* GA */}
-            <col style={{ width: 72 }} />   {/* BW */}
+            <col style={{ width: 90 }} />   {/* Bed */}
+            <col style={{ width: 68 }} />   {/* Name */}
+            <col style={{ width: 62 }} />   {/* GA */}
+            <col style={{ width: 68 }} />   {/* BW */}
             <col />                          {/* Diagnosis — flex */}
-            <col style={{ width: 46 }} />   {/* DOL */}
-            <col style={{ width: 82 }} />   {/* Current wt */}
-            <col style={{ width: 110 }} />  {/* Δ */}
-            <col style={{ width: 110 }} />  {/* Last entry */}
-            <col style={{ width: 76 }} />   {/* Status */}
-            <col style={{ width: 104 }} />  {/* Actions */}
+            <col style={{ width: 48 }} />   {/* DOL */}
+            <col style={{ width: 78 }} />   {/* Current wt */}
+            <col style={{ width: 108 }} />  {/* Δ */}
+            <col style={{ width: 120 }} />  {/* Last entry */}
+            <col style={{ width: 72 }} />   {/* Status */}
+            <col style={{ width: 112 }} />  {/* Actions */}
           </colgroup>
           <thead>
             <tr>
@@ -202,8 +202,8 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
               <th>BW (g)</th>
               <th>Diagnosis</th>
               <th>DOL</th>
-              <th>Current wt</th>
-              <th>Δ from birth</th>
+              <th>Wt now</th>
+              <th>Δ birth</th>
               <th>Last entry</th>
               <th>Status</th>
               <th></th>
@@ -251,18 +251,19 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
                     }
                   </td>
                   <td><span className="chip ok"><span className="d" />Active</span></td>
-                  <td style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                    <button className="btn sm" title="Transfer bed"
-                      onClick={e => { e.stopPropagation(); setTransferPatient(p); }}>
-                      ⇄
-                    </button>
-                    <button className="btn sm" onClick={e => { e.stopPropagation(); setEditPatient(p); }}>
-                      Edit
-                    </button>
-                    <button className="btn sm" style={{ background: "var(--brand)", color: "#fff", borderColor: "var(--brand-2)" }}
-                      onClick={e => { e.stopPropagation(); onSelect(p.sessionId); }}>
-                      Open <Icon name="arrow" size={11} color="#fff" />
-                    </button>
+                  <td>
+                    <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                      <button className="btn sm" title="ย้ายเตียง"
+                        onClick={e => { e.stopPropagation(); setTransferPatient(p); }}
+                        style={{ padding: "0 8px", fontSize: 13 }}>⇄</button>
+                      <button className="btn sm"
+                        onClick={e => { e.stopPropagation(); setEditPatient(p); }}>Edit</button>
+                      <button className="btn sm"
+                        style={{ background: "var(--brand)", color: "#fff", borderColor: "var(--brand-2)" }}
+                        onClick={e => { e.stopPropagation(); onSelect(p.sessionId); }}>
+                        Open <Icon name="arrow" size={11} color="#fff" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -459,19 +460,21 @@ function PatientPicker({ patients, activeId, onSelect, onClose }) {
               className="picker-row"
               onClick={() => { onSelect(p.sessionId); onClose(); }}
               style={{
-                display: "grid", gridTemplateColumns: "140px 1fr 100px 80px 90px", gap: 14,
-                alignItems: "center", padding: "12px 18px", cursor: "pointer",
+                display: "grid",
+                gridTemplateColumns: "84px 96px 64px 76px 1fr",
+                gap: 10,
+                alignItems: "center", padding: "10px 18px", cursor: "pointer",
                 background: p.sessionId === activeId ? "var(--brand-bg)" : undefined,
                 borderBottom: "1px solid var(--line-2)"
               }}
               onMouseEnter={e => { if (p.sessionId !== activeId) e.currentTarget.style.background = "var(--bg-2)"; }}
               onMouseLeave={e => { if (p.sessionId !== activeId) e.currentTarget.style.background = ""; }}
             >
-              <span style={{ fontWeight: 600, fontSize: 14 }}>{p.name || p.initials || "—"}</span>
-              <span style={{ color: "var(--ink-2)", fontSize: 12.5 }}>{p.diagnosis}</span>
-              <span className="chip"><span className="d" />{p.currentBed}</span>
-              <span style={{ fontSize: 11.5, color: "var(--ink-3)" }} className="mono">GA {D_R.fmtGA(p.ga)}</span>
-              <span style={{ fontSize: 11.5, color: "var(--ink-3)" }} className="mono">BW {p.bw}g</span>
+              <span className="chip" style={{ justifySelf: "start" }}><span className="d" />{p.currentBed}</span>
+              <span style={{ fontWeight: 700, fontSize: 14 }}>{p.name || p.initials || "—"}</span>
+              <span className="mono" style={{ fontSize: 12, color: "var(--brand-2)", fontWeight: 600 }}>{D_R.fmtGA(p.ga)}</span>
+              <span className="mono" style={{ fontSize: 12, color: "var(--ink-2)" }}>{p.bw.toLocaleString()}g</span>
+              <span style={{ color: "var(--ink-3)", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.diagnosis || "—"}</span>
             </div>
           ))}
           {filtered.length === 0 && (
