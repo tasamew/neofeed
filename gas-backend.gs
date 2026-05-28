@@ -85,6 +85,7 @@ function getSheetStaff() {
 
 // ── Staff lookup ──────────────────────────────────────────────
 function getStaffRow(email) {
+  if (!email) return null;
   var rows = getSheetStaff().getDataRange().getValues();
   var el = email.trim().toLowerCase();
   for (var i = 1; i < rows.length; i++) {
@@ -96,6 +97,7 @@ function getStaffRow(email) {
 // ── setInitialPassword — run from Apps Script editor ─────────
 // Usage: setInitialPassword("user@redcross.or.th", "MyP@ssw0rd")
 function setInitialPassword(email, password) {
+  if (!email || !password) { Logger.log("Usage: setInitialPassword('email@domain', 'password')"); return; }
   var sh = getSheetStaff();
   var found = getStaffRow(email);
   var salt = Utilities.getUuid();
