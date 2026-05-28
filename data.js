@@ -33,18 +33,27 @@ const EN_DB = {
     na: 1.0, k: 1.7, ca: 50, p: 28,
     osm: 290, lf: false,
   },
+  // Source: Chula Handbook §3, per-100mL conversion table (Corrected 2026-05-28)
   FBM_PF_22: {
-    label: "Preterm Formula (22 kcal/oz)",
-    kcal: 73, pro: 2.0, fat: 3.8, cho: 8.0,
-    na: 1.3, k: 1.9, ca: 75, p: 40,
-    osm: 300, lf: false,
+    label: "Enfalac Premature (22 kcal/oz)",
+    kcal: 74, pro: 2.1, fat: 4.0, cho: 8.1,
+    na: 1.87, k: 1.90, ca: 102, p: 59,
+    osm: 270, lf: false,
+    note: "Enfalac Premature (MJN) · Ca:P 1.7:1 · Chula Handbook §3",
+  },
+  PRENAN_22: {
+    label: "Pre Nan (22 kcal/oz)",
+    kcal: 74, pro: 1.7, fat: 4.3, cho: 7.9,
+    na: 1.30, k: 1.77, ca: 74, p: 67,
+    osm: 260, lf: false,
+    note: "Pre Nan (Nestlé) · Ca:P 1.1:1 (casein-dominant 18:82 whey:casein) · Chula Handbook §3",
   },
   FBM_PF_24: {
-    label: "Preterm Formula (24 kcal/oz)",
-    kcal: 80, pro: 2.6, fat: 4.1, cho: 8.6,
-    na: 1.5, k: 2.1, ca: 100, p: 55,
-    osm: 310, lf: false,
-    note: "HMF indicated at ≥40 mL/kg/day for <32 wk or <1.5 kg",
+    label: "Hi-Q LBW (24 kcal/oz)",
+    kcal: 80, pro: 2.1, fat: 3.8, cho: 10.9,
+    na: 3.00, k: 2.56, ca: 84, p: 55,
+    osm: 360, lf: false,
+    note: "Hi-Q LBW (Dumex/Nutricia) · high osm (GOS/FOS 360) → watch feed tolerance · Chula Handbook §3",
   },
 
   // ── BM + HMF ─────────────────────────────────────────────
@@ -54,58 +63,60 @@ const EN_DB = {
   // Chula uses Enfamil HMF (Mead Johnson) — values from BOX 1.3.3
   BM_HMF_24: {
     label: "FBM with HMF (24 kcal/oz)",
-    kcal: 81, pro: 2.3, fat: 4.1, cho: 7.8,
+    kcal: 81, pro: 2.6, fat: 3.8, cho: 8.2,
     na: 1.40, k: 1.89, ca: 115, p: 59,
     osm: 353, lf: false,
-    note: "Start HMF at ≥40 mL/kg/day · <32 wk or <1.5 kg (WHO 2023) · Enfamil HMF reference (BOX 1.3.3)",
+    // Chula Handbook §2: Enfamil HMF 4 pkt/100mL BM → pro 2.5–2.8 g (use 2.6), fat 3.5–4.0 (use 3.8), cho 8.2
+    note: "Start HMF at ≥40 mL/kg/day · <32 wk or <1.5 kg (WHO 2023) · Enfamil HMF (Chula Handbook §2)",
   },
 
 
-  // ── Lactose-free (generic — no brand) ─────────────────────
-  // Averaged from HiQ LF (Dumex) + Enfalac LF (MJN) — verify with actual brand label
-  // at KCMH. Pharmacy may stock either; nutrition values close enough for ordering.
+  // ── Lactose-free — HiQ LF (Dumex/Nutricia) ────────────────
+  // Source: Chula Handbook §5 (per 100 mL conversion table)
+  // KCMH uses HiQ LF as primary LF brand (interchangeable with Enfalac LF)
   LF_20: {
-    label: "LF (20 kcal/oz)",
-    kcal: 67, pro: 1.60, fat: 3.60, cho: 7.35,
-    na: 0.73, k: 1.07, ca: 55, p: 33,
-    osm: 220, lf: true,
-    note: "Generic lactose-free — verify with actual brand label (HiQ / Enfalac LF)",
+    label: "LF — HiQ LF (20 kcal/oz)",
+    kcal: 67, pro: 1.41, fat: 3.75, cho: 6.90,
+    na: 1.17, k: 1.72, ca: 57, p: 40,
+    osm: 170, lf: true,
+    note: "HiQ LF 20 kcal/oz · Chula Handbook §5 · low osm (glucose polymer)",
   },
   LF_24: {
-    label: "LF (24 kcal/oz)",
-    kcal: 80, pro: 1.90, fat: 4.30, cho: 8.80,
-    na: 0.90, k: 1.30, ca: 66, p: 40,
-    osm: 237, lf: true,
+    label: "LF — HiQ LF (24 kcal/oz)",
+    kcal: 80, pro: 1.68, fat: 4.48, cho: 8.24,
+    na: 1.39, k: 2.05, ca: 68, p: 47,
+    osm: 240, lf: true,
   },
   LF_27: {
-    label: "LF (27 kcal/oz)",
-    kcal: 90, pro: 2.13, fat: 4.80, cho: 9.90,
-    na: 1.00, k: 1.47, ca: 73, p: 45,
-    osm: 257, lf: true,
+    label: "LF — HiQ LF (27 kcal/oz)",
+    kcal: 90, pro: 1.89, fat: 5.04, cho: 9.27,
+    na: 1.57, k: 2.31, ca: 77, p: 53,
+    osm: 280, lf: true,
+    note: "Ca still below ESPGHAN goal at 150 mL/kg → supplement oral Ca. Na may need supplement.",
   },
 
-  // ── HiQ LF (Dumex) — Lactose-Free ──────────────────────────
-  // Low osmolality — safe to concentrate. Protein from whey.
-  // Ca:P mass ratio 1.91 — good bone mineralisation ratio
+  // ── HiQ LF (Dumex/Nutricia) — Lactose-Free ─────────────────
+  // Source: Chula Handbook §5, per-100mL conversion (HiQ LF column)
+  // Corrected 2026-05-28 — previous values were significantly underestimated
   HIQLF_20: {
     label: "HiQ LF — 20 kcal/oz (67 kcal/100mL)",
-    kcal: 67, pro: 1.67, fat: 3.6, cho: 7.4,
-    na: 0.53, k: 0.93, ca: 44, p: 23,
-    osm: 220, lf: true,
-    note: "LF → glucose polymer → low osmolality. Safe to concentrate to 27 kcal/oz",
+    kcal: 67, pro: 1.41, fat: 3.75, cho: 6.90,
+    na: 1.17, k: 1.72, ca: 57, p: 40,
+    osm: 170, lf: true,
+    note: "Low osm (glucose polymer) — safe to concentrate. Chula Handbook §5",
   },
   HIQLF_24: {
     label: "HiQ LF — 24 kcal/oz (80 kcal/100mL)",
-    kcal: 80, pro: 2.0, fat: 4.3, cho: 8.9,
-    na: 0.67, k: 1.13, ca: 53, p: 28,
-    osm: 255, lf: true,
+    kcal: 80, pro: 1.68, fat: 4.48, cho: 8.24,
+    na: 1.39, k: 2.05, ca: 68, p: 47,
+    osm: 240, lf: true,
   },
   HIQLF_27: {
     label: "HiQ LF — 27 kcal/oz (90 kcal/100mL)",
-    kcal: 90, pro: 2.25, fat: 4.8, cho: 10.0,
-    na: 0.73, k: 1.27, ca: 58, p: 31,
-    osm: 290, lf: true,
-    note: "Ca still below 2022 goal at 150 mL/kg — supplement CaCO₃. Na always needs supplement",
+    kcal: 90, pro: 1.89, fat: 5.04, cho: 9.27,
+    na: 1.57, k: 2.31, ca: 77, p: 53,
+    osm: 280, lf: true,
+    note: "Ca below ESPGHAN goal at 150 mL/kg → supplement oral Ca",
   },
 
   // ── Enfalac LF (Mead Johnson) — Lactose-Free ──────────────
@@ -133,12 +144,13 @@ const EN_DB = {
 
   // ── Infatrini (Nutricia) — 100 kcal/100 mL ────────────────
   // Pre-concentrated, has lactose — complete nutrition at 150 mL/kg (if no LF req)
+  // Source: Chula Handbook §6 (Infatrini 100 kcal/100mL) — Corrected 2026-05-28
   INFATRINI_30: {
     label: "Infatrini (30 kcal/oz)",
     kcal: 100, pro: 2.6, fat: 5.4, cho: 10.3,
-    na: 2.00, k: 2.75, ca: 100, p: 56,
+    na: 1.80, k: 2.75, ca: 124, p: 69,
     osm: 345, lf: false,
-    note: "Complete at 150 mL/kg without protein module (if lactose tolerated)",
+    note: "Infatrini (Nutricia) · 100 kcal/100mL · na 1.74–1.87, ca 120–128, p 67–72 · Chula Handbook §6",
   },
 
   // ── Mixed feeds ────────────────────────────────────────────
