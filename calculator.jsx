@@ -230,8 +230,8 @@ function Calculator({ patient, dol, onLog, onWeightChange }) {
     setEnVol(restored?.enVol ?? 0);
     setEnFreq(restored?.enFreq ?? 0);
     setIsMEN(restored?.isMEN ?? false);
-    setInclSoluvit(restored?.inclSoluvit ?? false);
-    setInclPeditrace(restored?.inclPeditrace ?? false);
+    setInclSoluvit(restored?.inclSoluvit ?? true);
+    setInclPeditrace(restored?.inclPeditrace ?? true);
     setInclAddamel(restored?.inclAddamel ?? false);
     setHeparinUmL(restored?.heparinUmL ?? 1);
     setSuppVitD(restored?.suppVitD ?? 0);
@@ -491,7 +491,7 @@ function Calculator({ patient, dol, onLog, onWeightChange }) {
   if (calc.totalKcal > 0 && sNPE === "warn") alerts.push({ level: "warn", title: "NPE:AA off target", body: `${calc.npeN.toFixed(0)} kcal/g protein — aim ${tNPE[0]}–${tNPE[1]} kcal/g AA (ESPGHAN 2018).`, ref: "ESPGHAN 2018" });
   if (calc.pTotal_mg > 0 && sCaP === "warn") alerts.push({ level: "warn", title: "Ca:P ratio off target", body: `Mass ratio ${calc.caP.toFixed(2)} — aim ${tCaP[0]}–${tCaP[1]}:1 (molar 0.8–1.3:1 ESPGHAN 2018).`, ref: "ESPGHAN 2018" });
   if (calc.totalTPN_mL > 0 && sOsm === "crit") alerts.push({ level: "crit", title: "Osmolarity > peripheral limit", body: `${calc.osm.toFixed(0)} mOsm/L — switch to central.`, ref: "Safety" });
-  if (calc.prescribedFluid > 0 && Math.abs(calc.totalFluidPerKg - fluidTargetPerKg) > 20) alerts.push({ level: "info", title: "Fluid: prescribed ≠ target", body: `Prescribed ${calc.totalFluidPerKg.toFixed(0)} vs plan ${fluidTargetPerKg} mL/kg/d — attending discretion`, ref: "Plan" });
+  if (calc.totalTPN_mL > 0 && Math.abs(calc.totalFluidPerKg - fluidTargetPerKg) > 20) alerts.push({ level: "info", title: "Fluid: prescribed ≠ target", body: `Prescribed ${calc.totalFluidPerKg.toFixed(0)} vs plan ${fluidTargetPerKg} mL/kg/d — attending discretion`, ref: "Plan" });
 
   // TwoCol is defined at module level (below) — do NOT define inside Calculator
   // (inline component definitions cause React to unmount/remount on every render → focus lost)
