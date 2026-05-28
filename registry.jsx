@@ -4,9 +4,11 @@
 const D_R = window.NEOFEED_DATA;
 
 function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit }) {
-  const [filter, setFilter] = React.useState("");
-  const [showAdd, setShowAdd] = React.useState(false);
-  const [editPatient, setEditPatient] = React.useState(null);
+  const [filter, setFilter]         = React.useState("");
+  const [showAdd, setShowAdd]       = React.useState(false);
+  const [editPatient, setEditPatient]       = React.useState(null);
+  const [transferPatient, setTransferPatient] = React.useState(null);
+  const [showArchived, setShowArchived]     = React.useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
   const q = filter.toLowerCase().trim();
@@ -16,9 +18,11 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
     (p.currentBed || "").toLowerCase().includes(q) ||
     (p.diagnosis || "").toLowerCase().includes(q)
   );
-  const sorted = [...filtered].sort((a, b) =>
-    (a.currentBed || "zzz").localeCompare(b.currentBed || "zzz", undefined, { numeric: true, sensitivity: "base" })
-  );
+  const bedSort = (a, b) =>
+    (a.currentBed || "zzz").localeCompare(b.currentBed || "zzz", undefined, { numeric: true, sensitivity: "base" });
+  const sorted   = [...filtered].sort(bedSort);
+  const activeSorted   = sorted.filter(p => p.status === "Active" || !p.status);
+  const archivedSorted = sorted.filter(p => p.status && p.status !== "Active");
 
   // Summary stats
   const totalActive  = patients.filter(p => p.status === "Active").length;
@@ -76,7 +80,7 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
 
       {/* ─── Mobile: card list ─── */}
       <div className="patient-card-list">
-        {sorted.map(p => {
+        {activeSorted.map(p => {
           const last    = p.weights[p.weights.length - 1];
           const dol     = D_R.liveDol(p);
           const delta   = last ? last.w - p.bw : 0;
@@ -98,9 +102,7 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
                   <span className="pmc-name">{p.name || p.initials || "—"}</span>
                   <span className="pmc-dol">DOL {dol}</span>
                 </div>
-                <span className={`chip ${p.status === "Active" ? (p.bw < 1000 ? "crit" : "ok") : ""}`}>
-                  <span className="d" />{p.status}
-                </span>
+                <span className="chip ok"><span className="d" />Active</span>
               </div>
 
               {/* Row 2: bed + GA · BW */}
@@ -143,9 +145,35 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
           );
         })}
 
-        {sorted.length === 0 && (
+        {activeSorted.length === 0 && (
           <div style={{ padding: "48px 16px", textAlign: "center", color: "var(--ink-3)", fontSize: 13 }}>
             {filter ? "ไม่พบผู้ป่วยที่ตรงกัน" : "ยังไม่มีผู้ป่วยในระบบ"}
+          </div>
+        )}
+
+        {/* Archived toggle */}
+        {archivedSorted.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <button className="btn" style={{ width: "100%", justifyContent: "center", color: "var(--ink-3)", fontSize: 12 }}
+              onClick={() => setShowArchived(s => !s)}>
+              {showArchived ? "▲" : "▼"} Discharged / Transferred / Expired ({archivedSorted.length})
+            </button>
+            {showArchived && archivedSorted.map(p => (
+              <div key={p.sessionId} className="patient-mc" style={{ opacity: 0.55 }}
+                   onClick={() => onSelect(p.sessionId)}>
+                <div className="pmc-row pmc-head">
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="pmc-name">{p.name || p.initials || "—"}</span>
+                    <span className="chip"><span className="d" />{p.currentBed}</span>
+                  </div>
+                  <span className="chip"><span className="d" />{p.status}</span>
+                </div>
+                <div className="pmc-row">
+                  <span className="pmc-meta"><span className="num">{D_R.fmtGA(p.ga)}</span> wk · <span className="num">{p.bw.toLocaleString()}</span> g</span>
+                </div>
+                {p.diagnosis && <div className="pmc-diagnosis">{p.diagnosis}</div>}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -182,7 +210,7 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
             </tr>
           </thead>
           <tbody>
-            {sorted.map(p => {
+            {activeSorted.map(p => {
               const last     = p.weights[p.weights.length - 1];
               const dol      = D_R.liveDol(p);
               const delta    = last ? last.w - p.bw : 0;
@@ -190,11 +218,11 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
               const entries  = log[p.sessionId] || [];
               const lastEntry = entries[entries.length - 1];
               const hasToday  = lastEntry?.ts === today;
-              const isActive  = p.sessionId === activeId;
+              const isSelected = p.sessionId === activeId;
 
               return (
                 <tr key={p.sessionId}
-                    className={isActive ? "p-active" : ""}
+                    className={isSelected ? "p-active" : ""}
                     style={{ cursor: "pointer" }}
                     onClick={() => onSelect(p.sessionId)}>
                   <td><span className="chip"><span className="d" />{p.currentBed}</span></td>
@@ -222,12 +250,12 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
                       : <span style={{ color: "var(--ink-4)" }}>—</span>
                     }
                   </td>
-                  <td>
-                    <span className={`chip ${p.status === "Active" ? (p.bw < 1000 ? "crit" : "ok") : ""}`}>
-                      <span className="d" />{p.status}
-                    </span>
-                  </td>
-                  <td style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                  <td><span className="chip ok"><span className="d" />Active</span></td>
+                  <td style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                    <button className="btn sm" title="Transfer bed"
+                      onClick={e => { e.stopPropagation(); setTransferPatient(p); }}>
+                      ⇄
+                    </button>
                     <button className="btn sm" onClick={e => { e.stopPropagation(); setEditPatient(p); }}>
                       Edit
                     </button>
@@ -239,6 +267,33 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
                 </tr>
               );
             })}
+
+            {/* Archived section */}
+            {archivedSorted.length > 0 && (
+              <tr>
+                <td colSpan={11} style={{ padding: "6px 12px", background: "var(--bg-2)", borderTop: "2px solid var(--line)" }}>
+                  <button className="btn sm" style={{ color: "var(--ink-3)", fontSize: 11 }}
+                    onClick={e => { e.stopPropagation(); setShowArchived(s => !s); }}>
+                    {showArchived ? "▲" : "▼"} Discharged / Transferred / Expired ({archivedSorted.length})
+                  </button>
+                </td>
+              </tr>
+            )}
+            {showArchived && archivedSorted.map(p => (
+              <tr key={p.sessionId} style={{ opacity: 0.5, cursor: "pointer" }}
+                  onClick={() => onSelect(p.sessionId)}>
+                <td><span className="chip"><span className="d" />{p.currentBed}</span></td>
+                <td style={{ fontWeight: 600, fontSize: 13 }}>{p.name || p.initials || "—"}</td>
+                <td className="num">{D_R.fmtGA(p.ga)}</td>
+                <td className="num">{p.bw.toLocaleString()}</td>
+                <td style={{ color: "var(--ink-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.diagnosis}</td>
+                <td colSpan={5} />
+                <td><span className="chip"><span className="d" />{p.status}</span></td>
+                <td style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                  <button className="btn sm" onClick={e => { e.stopPropagation(); setEditPatient(p); }}>Edit</button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
 
@@ -249,9 +304,11 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
         )}
       </div>
 
-      {showAdd     && <NewPatientModal onClose={() => setShowAdd(false)} onSubmit={p => { onAdd(p); setShowAdd(false); }} />}
-      {editPatient && <EditPatientModal patient={editPatient} onClose={() => setEditPatient(null)}
+      {showAdd          && <NewPatientModal onClose={() => setShowAdd(false)} onSubmit={p => { onAdd(p); setShowAdd(false); }} />}
+      {editPatient      && <EditPatientModal patient={editPatient} onClose={() => setEditPatient(null)}
         onSubmit={p => { onEdit?.(p); setEditPatient(null); }} />}
+      {transferPatient  && <TransferBedModal patient={transferPatient} onClose={() => setTransferPatient(null)}
+        onSubmit={p => { onEdit?.(p); setTransferPatient(null); }} />}
     </>
   );
 }
@@ -490,6 +547,59 @@ function EditPatientModal({ patient, onClose, onSubmit }) {
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
             <button className="btn" onClick={onClose}>Cancel</button>
             <button className="btn primary" onClick={save}><Icon name="save" size={14} color="#fff" /> Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Transfer bed modal ───────────────────────────────────────
+function TransferBedModal({ patient, onClose, onSubmit }) {
+  const [bed, setBed] = React.useState(patient.currentBed || "");
+
+  const save = () => {
+    if (!bed || bed === patient.currentBed) { onClose(); return; }
+    const bedHistory = [
+      ...(patient.bedHistory || []),
+      { bed: patient.currentBed, date: new Date().toISOString().slice(0, 10) },
+    ];
+    onSubmit({ ...patient, currentBed: bed, bedHistory });
+  };
+
+  return (
+    <div className="picker-backdrop" onClick={onClose}>
+      <div className="picker" style={{ width: 400 }} onClick={e => e.stopPropagation()}>
+        <div className="picker-h" style={{ justifyContent: "space-between" }}>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>Transfer bed · {patient.name || patient.initials}</div>
+          <button className="icon-btn" onClick={onClose}><Icon name="x" size={14} /></button>
+        </div>
+        <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--ink-2)" }}>
+            <span className="chip"><span className="d" />{patient.currentBed || "—"}</span>
+            <span style={{ color: "var(--ink-3)" }}>→</span>
+            <select className="sel" style={{ flex: 1 }} value={bed} onChange={e => setBed(e.target.value)}>
+              {BED_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>
+
+          {/* Bed history */}
+          {(patient.bedHistory || []).length > 0 && (
+            <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Previous beds</div>
+              {patient.bedHistory.map((h, i) => (
+                <div key={i}>{h.bed} <span style={{ color: "var(--ink-4)" }}>until {h.date}</span></div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <button className="btn" onClick={onClose}>Cancel</button>
+            <button className="btn primary" onClick={save}
+              disabled={!bed || bed === patient.currentBed}>
+              <Icon name="save" size={14} color="#fff" /> Confirm transfer
+            </button>
           </div>
         </div>
       </div>
