@@ -384,6 +384,7 @@ function PatientPicker({ patients, activeId, onSelect, onClose }) {
         <div style={{ padding: "6px 0", maxHeight: 480, overflowY: "auto" }}>
           {filtered.map(p => (
             <div key={p.sessionId}
+              className="picker-row"
               onClick={() => { onSelect(p.sessionId); onClose(); }}
               style={{
                 display: "grid", gridTemplateColumns: "140px 1fr 100px 80px 90px", gap: 14,

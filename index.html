@@ -984,11 +984,27 @@
 
     /* Patient strip: 9px label → 10px minimum */
     .patient-strip .lbl { font-size: 10px !important; height: auto !important; min-height: 20px; }
+
+    /* ── Patient picker rows: 5-col → 2-row layout ── */
+    /* Desktop: "140px 1fr 100px 80px 90px" — too wide for 360px Android */
+    /* Mobile: name | bed | GA on row 1, diagnosis on row 2 */
+    .picker-row {
+      grid-template-columns: 1fr auto auto !important;
+      grid-template-rows: auto auto !important;
+      gap: 4px 10px !important;
+      padding: 10px 14px !important;
+      align-items: center !important;
+    }
+    .picker-row > span:nth-child(1) { grid-column: 1; grid-row: 1; font-size: 15px; }
+    .picker-row > span:nth-child(2) { grid-column: 1 / -1; grid-row: 2; font-size: 11.5px; color: var(--ink-3); }
+    .picker-row > span:nth-child(3) { grid-column: 2; grid-row: 1; }
+    .picker-row > span:nth-child(4) { grid-column: 3; grid-row: 1; font-size: 12px; }
+    .picker-row > span:nth-child(5) { display: none !important; }
   }
 
   /* ============ PATIENT REGISTRY ============ */
   /* Desktop default: hide mobile cards, show table */
-  .patient-card-list { display: none !important; }
+  .patient-card-list { display: none; }   /* no !important — mobile override wins */
   .patient-table     { display: block; }
 
   /* Stats strip */
@@ -1109,14 +1125,14 @@
   </script>
 
   <!-- App data and modules — ?v= busts browser cache on each deploy -->
-  <script src="data.js?v=mobile-ux10"></script>
-  <script type="text/babel" src="tweaks-panel.jsx?v=mobile-ux10"></script>
-  <script type="text/babel" src="icons.jsx?v=mobile-ux10"></script>
-  <script type="text/babel" src="calculator.jsx?v=mobile-ux10"></script>
-  <script type="text/babel" src="fenton.jsx?v=mobile-ux10"></script>
-  <script type="text/babel" src="registry.jsx?v=mobile-ux10"></script>
-  <script type="text/babel" src="log.jsx?v=mobile-ux10"></script>
-  <script type="text/babel" src="app.jsx?v=mobile-ux10"></script>
+  <script src="data.js?v=mobile-ux11"></script>
+  <script type="text/babel" src="tweaks-panel.jsx?v=mobile-ux11"></script>
+  <script type="text/babel" src="icons.jsx?v=mobile-ux11"></script>
+  <script type="text/babel" src="calculator.jsx?v=mobile-ux11"></script>
+  <script type="text/babel" src="fenton.jsx?v=mobile-ux11"></script>
+  <script type="text/babel" src="registry.jsx?v=mobile-ux11"></script>
+  <script type="text/babel" src="log.jsx?v=mobile-ux11"></script>
+  <script type="text/babel" src="app.jsx?v=mobile-ux11"></script>
 </body>
 </html>
 
