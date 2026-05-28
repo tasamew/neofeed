@@ -241,16 +241,17 @@ function PatientRegistry({ patients, activeId, log = {}, onSelect, onAdd, onEdit
 }
 
 const BED_OPTIONS = [
-  "NICU 1-1", "NICU 1-2",
-  "NICU 2-1", "NICU 2-2",
-  "NICU 3-1", "NICU 3-2", "NICU 3-3", "NICU 3-4",
-  "SCN-1", "SCN-2", "SCN-3", "SCN-4", "SCN-5",
+  ...Array.from({ length: 12 }, (_, i) => `NICU ${i + 1}`),
+  "iso 1-1", "iso 1-2",
+  "iso 2-1", "iso 2-2",
+  "iso 3-1", "iso 3-2", "iso 3-3", "iso 3-4",
+  ...Array.from({ length: 10 }, (_, i) => `SCN ${i + 1}`),
 ];
 
 function NewPatientModal({ onClose, onSubmit }) {
   const [name, setName] = React.useState("");
-  const [bw, setBw]     = React.useState(1000);
-  const [ga, setGa]     = React.useState(28);
+  const [bw, setBw]     = React.useState(0);
+  const [ga, setGa]     = React.useState(0);
   const [hc, setHc]     = React.useState(0);
   const [len, setLen]   = React.useState(0);
   const [twin, setTwin] = React.useState("");
@@ -284,7 +285,7 @@ function NewPatientModal({ onClose, onSubmit }) {
           <div className="row-3">
             <div className="field">
               <label>Birth weight <span className="unit">(g)</span></label>
-              <input type="number" className="inp num" value={bw} onChange={e => setBw(parseInt(e.target.value) || 0)} />
+              <input type="number" className="inp num" value={bw || ""} onChange={e => setBw(parseInt(e.target.value) || 0)} placeholder="0" />
             </div>
             <div className="field">
               <label>GA <span className="unit">(weeks + days)</span></label>
@@ -304,7 +305,7 @@ function NewPatientModal({ onClose, onSubmit }) {
                     const d = parseInt(e.target.value, 10) || 0;
                     setGa(Math.floor(ga) + d / 10);
                   }}>
-                  {[0,1,2,3,4,5,6].map(d => <option key={d} value={d}>{d} d</option>)}
+                  {[0,1,2,3,4,5,6].map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             </div>
