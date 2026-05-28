@@ -641,15 +641,55 @@ function AlertCenter({ patient, log }) {
 }
 
 // ============================================================
-// Login screen — email + password (any domain)
+// Login screen — hybrid:
+//   Gmail / Google Workspace → Google Sign-In button
+//   Other email domains      → email + password form
 // ============================================================
 function LoginScreen({ onLogin }) {
-  const [email, setEmail]     = React.useState("");
+  const [email, setEmail]       = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError]     = React.useState(null);
-  const [showPwd, setShowPwd] = React.useState(false);
+  const [loading, setLoading]   = React.useState(false);
+  const [error, setError]       = React.useState(null);
+  const [showPwd, setShowPwd]   = React.useState(false);
+  const btnRef = React.useRef(null);
 
+  // ── Google Sign-In init ──────────────────────────────────
+  React.useEffect(() => {
+    const init = () => {
+      if (!window.google?.accounts?.id || !btnRef.current) return;
+      google.accounts.id.initialize({
+        client_id: window.NEOFEED_CLIENT_ID,
+        callback: async (resp) => {
+          setLoading(true); setError(null);
+          try {
+            const res  = await fetch(window.NEOFEED_GAS_URL, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({ action: "login", googleToken: resp.credential }),
+            });
+            const data = await res.json();
+            if (data.status !== "ok") throw new Error(data.error || "ไม่พบบัญชีนี้ในระบบ");
+            onLogin({ name: data.name, role: data.role, email: data.email, token: data.token });
+          } catch (err) {
+            setError(err.message); setLoading(false);
+          }
+        },
+      });
+      google.accounts.id.renderButton(btnRef.current, {
+        type: "standard", shape: "pill", theme: "outline",
+        text: "signin_with", locale: "th", size: "large", width: 300,
+      });
+    };
+    if (window.google?.accounts?.id) init();
+    else {
+      const s = document.querySelector('script[src*="gsi/client"]');
+      if (s) s.addEventListener("load", init, { once: true });
+      else window.addEventListener("load", init, { once: true });
+    }
+    return () => window.removeEventListener("load", init);
+  }, []);
+
+  // ── Email + password submit ──────────────────────────────
   const submit = async (e) => {
     e && e.preventDefault();
     if (!email.trim() || !password) { setError("กรุณากรอก email และรหัสผ่าน"); return; }
@@ -664,8 +704,7 @@ function LoginScreen({ onLogin }) {
       if (data.status !== "ok") throw new Error(data.error || "ไม่พบบัญชีนี้ในระบบ");
       onLogin({ name: data.name, role: data.role, email: data.email, token: data.token });
     } catch (err) {
-      setError(err.message || "เกิดข้อผิดพลาด กรุณาลองอีกครั้ง");
-      setLoading(false);
+      setError(err.message); setLoading(false);
     }
   };
 
@@ -678,54 +717,53 @@ function LoginScreen({ onLogin }) {
           <circle cx="27" cy="9" r="3" fill="#fff" stroke="none" />
         </svg>
       </div>
-
       <div className="login-app-name">NeoFeed</div>
       <div className="login-tagline">Neonatal nutrition,<br />calculated precisely</div>
 
-      <form className="login-btn-area" onSubmit={submit}
-        style={{ display: "flex", flexDirection: "column", gap: 10, padding: 0 }}>
+      <div className="login-btn-area" style={{ display: "flex", flexDirection: "column", gap: 0, padding: 0 }}>
 
-        <input
-          className="inp"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          autoComplete="username"
-          disabled={loading}
-          style={{ width: "100%", fontSize: 14 }}
-        />
+        {/* Google Sign-In */}
+        <div ref={btnRef} style={{ display: "flex", justifyContent: "center", minHeight: 44 }} />
 
-        <div style={{ position: "relative", width: "100%" }}>
-          <input
-            className="inp"
-            type={showPwd ? "text" : "password"}
-            placeholder="รหัสผ่าน"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            autoComplete="current-password"
-            disabled={loading}
-            style={{ width: "100%", fontSize: 14, paddingRight: 40 }}
-          />
-          <button type="button"
-            onClick={() => setShowPwd(s => !s)}
-            style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-              background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)",
-              fontSize: 13, padding: 4 }}>
-            {showPwd ? "ซ่อน" : "แสดง"}
-          </button>
+        {/* Divider */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0",
+          color: "var(--ink-4)", fontSize: 12 }}>
+          <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+          หรือ เข้าด้วย email อื่น
+          <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
         </div>
 
-        <button className="btn primary" type="submit" disabled={loading}
-          style={{ width: "100%", height: 44, fontSize: 14, marginTop: 2 }}>
-          {loading
-            ? <><span style={{ display: "inline-block", width: 14, height: 14,
-                border: "2px solid rgba(255,255,255,.4)", borderTopColor: "#fff",
-                borderRadius: "50%", animation: "spin .9s linear infinite",
-                marginRight: 8, verticalAlign: "middle" }} />กำลังตรวจสอบ...</>
-            : "เข้าสู่ระบบ"}
-        </button>
-      </form>
+        {/* Email + password form */}
+        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <input className="inp" type="email" placeholder="Email (@redcross.or.th …)"
+            value={email} onChange={e => setEmail(e.target.value)}
+            autoComplete="username" disabled={loading}
+            style={{ width: "100%", fontSize: 14 }} />
+
+          <div style={{ position: "relative" }}>
+            <input className="inp" type={showPwd ? "text" : "password"} placeholder="รหัสผ่าน"
+              value={password} onChange={e => setPassword(e.target.value)}
+              autoComplete="current-password" disabled={loading}
+              style={{ width: "100%", fontSize: 14, paddingRight: 52 }} />
+            <button type="button" onClick={() => setShowPwd(s => !s)}
+              style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                background: "none", border: "none", cursor: "pointer",
+                color: "var(--ink-3)", fontSize: 12, padding: 4 }}>
+              {showPwd ? "ซ่อน" : "แสดง"}
+            </button>
+          </div>
+
+          <button className="btn primary" type="submit" disabled={loading}
+            style={{ width: "100%", height: 44, fontSize: 14 }}>
+            {loading
+              ? <><span style={{ display: "inline-block", width: 14, height: 14,
+                  border: "2px solid rgba(255,255,255,.4)", borderTopColor: "#fff",
+                  borderRadius: "50%", animation: "spin .9s linear infinite",
+                  marginRight: 8, verticalAlign: "middle" }} />กำลังตรวจสอบ...</>
+              : "เข้าสู่ระบบ"}
+          </button>
+        </form>
+      </div>
 
       {error && <div className="login-error">⚠️ {error}</div>}
       <div className="login-footer">VALHALLA TEAM &nbsp;·&nbsp; V2.0</div>

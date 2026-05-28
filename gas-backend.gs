@@ -1,27 +1,45 @@
 // ============================================================
 // NeoFeed V2 — Google Apps Script backend
-// Email + password auth (SHA-256 + session token via CacheService)
+// Hybrid auth:
+//   • Gmail / Google Workspace → Google Sign-In JWT (no password)
+//   • Any other email           → SHA-256 password + session token
+// Both paths issue a CacheService session token (12 h TTL).
 // ============================================================
 // Setup:
 //   1. Create a Google Sheet → fill SPREADSHEET_ID below
 //   2. Tabs auto-created: Patient_Registry, Daily_Log, Staff
 //   3. Staff tab (A–F): email | role | name | active | password_hash | salt
-//   4. To add first user, run setInitialPassword("email","password") from
-//      Apps Script editor (⌘+Enter) — or use the bootstrap action below
-//   5. Deploy → Web app · Execute as: Me · Access: Anyone
-//   6. Copy URL → NeoFeed.html window.NEOFEED_GAS_URL
+//      Gmail users: leave cols E–F blank (password not used)
+//      Non-Gmail:   run setInitialPassword("email","pwd") from Apps Script editor
+//   4. Deploy → Web app · Execute as: Me · Access: Anyone
+//   5. Copy URL → NeoFeed.html window.NEOFEED_GAS_URL
 //
 // Patient_Registry (A–P): sessionId|name|initials|bw|ga|sex|dob|admissionDate|
 //   twinSuffix|status|currentBed|diagnosis|weights|lengths|hcs|bedHistory
 // Daily_Log (A–X): ts|sessionId|dol|weight|fluid|gir|pro|kcal|na|k|ca|p|
-//   enVolPerKg|route|status|submittedBy|suppMTV|suppVitD_IU|suppCa_mg|suppCaType|
-//   suppPO4_mmol|suppPO4Type|suppFe_mg|suppFeType
+//   enVolPerKg|route|status|submittedBy|suppMTV..suppFeType
 // Staff (A–F): email | role | name | active | password_hash | salt
 //
 // PDPA lawful basis: Section 26(6) medical necessity + professional confidentiality
 // ============================================================
 
 var SPREADSHEET_ID = "1cZSA2qAUWAvFmpzrcjxS8kw6r-MpCMOSVAJev1uNDtI";
+var CLIENT_ID      = "750019806043-imunne8ndetdesii70o3t1vnr0ta2br4.apps.googleusercontent.com";
+
+// ── Google JWT decoder (for Gmail/Workspace Sign-In path) ────
+function decodeJwtEmail(token) {
+  try {
+    var parts = token.split(".");
+    if (parts.length !== 3) return null;
+    var b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    var payload = JSON.parse(Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString());
+    if (payload.iss !== "https://accounts.google.com" && payload.iss !== "accounts.google.com") return null;
+    if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    if (!payload.email || payload.email_verified !== true) return null;
+    return payload.email;
+  } catch (e) { return null; }
+}
 
 // ── Password hashing ──────────────────────────────────────────
 function hashPwd(password, salt) {
@@ -156,7 +174,26 @@ function doPost(e) {
 
     // ── login ─────────────────────────────────────────────────
     if (action === "login") {
-      var email = (body.email || "").trim().toLowerCase();
+
+      var email, role, name;
+
+      // Path A: Google Sign-In JWT (gmail / Google Workspace)
+      if (body.googleToken) {
+        email = decodeJwtEmail(body.googleToken);
+        if (!email) return jsonOut({ status: "unauthorized", error: "Google token ไม่ถูกต้อง" });
+        var gFound = getStaffRow(email);
+        if (!gFound) return jsonOut({ status: "unauthorized", error: "ไม่พบบัญชีนี้ในระบบ" });
+        var gd = gFound.data;
+        if (gd[3] !== true && String(gd[3]).toUpperCase() !== "TRUE")
+          return jsonOut({ status: "unauthorized", error: "บัญชีนี้ถูกระงับ" });
+        role = String(gd[1] || "doctor");
+        name = String(gd[2] || email);
+        var tok = createSession(email, role, name);
+        return jsonOut({ status: "ok", name: name, role: role, email: email, token: tok });
+      }
+
+      // Path B: email + password (non-Google accounts)
+      email = (body.email || "").trim().toLowerCase();
       var password = body.password || "";
       if (!email || !password) return jsonOut({ status: "unauthorized", error: "กรุณากรอก email และรหัสผ่าน" });
 
@@ -164,21 +201,17 @@ function doPost(e) {
       if (!found) return jsonOut({ status: "unauthorized", error: "ไม่พบบัญชีนี้ในระบบ" });
 
       var d = found.data;
-      var active = d[3];
-      if (active !== true && String(active).toUpperCase() !== "TRUE") {
+      if (d[3] !== true && String(d[3]).toUpperCase() !== "TRUE")
         return jsonOut({ status: "unauthorized", error: "บัญชีนี้ถูกระงับ" });
-      }
 
       var storedHash = String(d[4] || "");
       var salt       = String(d[5] || "");
       if (!storedHash) return jsonOut({ status: "unauthorized", error: "ยังไม่ได้ตั้งรหัสผ่าน — แจ้ง admin" });
-
-      if (hashPwd(password, salt) !== storedHash) {
+      if (hashPwd(password, salt) !== storedHash)
         return jsonOut({ status: "unauthorized", error: "รหัสผ่านไม่ถูกต้อง" });
-      }
 
-      var role = String(d[1] || "doctor");
-      var name = String(d[2] || email);
+      role = String(d[1] || "doctor");
+      name = String(d[2] || email);
       var token = createSession(email, role, name);
       return jsonOut({ status: "ok", name: name, role: role, email: email, token: token });
     }
