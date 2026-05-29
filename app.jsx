@@ -314,7 +314,7 @@ function App() {
       <nav className="rail">
         <div className="rail-section">Workspace</div>
         <RailItem icon="users" label="Patients" active={view === "registry"} count={patients.length} onClick={() => setView("registry")} />
-        {role === "doctor" && <RailItem icon="calc" label="Calculator" active={view === "calculator"} onClick={() => setView("calculator")} />}
+        {(role === "doctor" || role === "nurse") && <RailItem icon="calc" label="Calculator" active={view === "calculator"} onClick={() => setView("calculator")} />}
         <RailItem icon="chart" label="Growth chart" active={view === "fenton"} onClick={() => setView("fenton")} />
         <RailItem icon="log" label="Daily log" active={view === "log"} count={(log[activeId] || []).length} onClick={() => setView("log")} />
         <RailItem icon="bell" label="Alerts" active={view === "alerts"} count={alertCount || null} crit={alertCount > 0} onClick={() => setView("alerts")} />
@@ -903,7 +903,7 @@ function AdminDashboard({ patients, log }) {
 function BottomNav({ view, setView, alertCount, logCount, role }) {
   const tabs = [
     { id: "registry",   icon: "users",  label: "Patients" },
-    ...(role === "doctor" ? [{ id: "calculator", icon: "calc", label: "Calc" }] : []),
+    ...((role === "doctor" || role === "nurse") ? [{ id: "calculator", icon: "calc", label: "Calc" }] : []),
     { id: "fenton",     icon: "chart",  label: "Growth"   },
     { id: "log",        icon: "log",    label: "Log",    badge: logCount   },
     { id: "alerts",     icon: "bell",   label: "Alerts", badge: alertCount },
