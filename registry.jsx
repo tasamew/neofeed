@@ -399,14 +399,18 @@ function NewPatientModal({ onClose, onSubmit }) {
             </div>
           </div>
           <div style={{ height: 10 }} />
-          <div className="row-2">
-            <div className="field">
-              <label>วันที่รับไว้ <span className="unit">(Admit date)</span></label>
-              <input type="date" className="inp" value={admitDate} onChange={e => setAdmitDate(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>DOL แรกรับ <span className="unit">(Day of Life at admit)</span></label>
-              <input type="number" className="inp num" min={1} value={dol1} onChange={e => setDol1(parseInt(e.target.value) || 1)} />
+          <div style={{ background: "var(--brand-bg,#e8f4fd)", border: "1.5px solid var(--brand-2,#2a7fc0)", borderRadius: 10, padding: "14px 16px" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--brand-2,#2a7fc0)", marginBottom: 12 }}>วันและ DOL แรกรับ</div>
+            <div className="row-2">
+              <div className="field">
+                <label style={{ fontSize: 13 }}>วันที่รับไว้ <span className="unit">(Admit date)</span></label>
+                <input type="date" className="inp" value={admitDate} onChange={e => setAdmitDate(e.target.value)} style={{ fontSize: 16, padding: "10px 12px" }} />
+              </div>
+              <div className="field">
+                <label style={{ fontSize: 13 }}>DOL แรกรับ <span className="unit">(Day of Life today)</span></label>
+                <input type="number" className="inp num" min={1} value={dol1} onChange={e => setDol1(parseInt(e.target.value) || 1)}
+                  style={{ fontSize: 28, fontWeight: 800, color: "var(--brand-2,#2a7fc0)", padding: "8px 12px" }} />
+              </div>
             </div>
           </div>
           <div style={{ height: 10 }} />
@@ -501,12 +505,21 @@ function PatientPicker({ patients, activeId, onSelect, onClose }) {
 }
 
 function EditPatientModal({ patient, onClose, onSubmit }) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const [name, setName]           = React.useState(patient.name || patient.initials || "");
   const [bed, setBed]             = React.useState(patient.currentBed || "NICU 1-1");
   const [dx, setDx]               = React.useState(patient.diagnosis || "");
   const [status, setStatus]       = React.useState(patient.status || "Active");
-  const [dol1, setDol1]           = React.useState(patient.weights?.[0]?.dol ?? 1);
-  const [admitDate, setAdmitDate] = React.useState(patient.admissionDate || new Date().toISOString().slice(0, 10));
+  const [admitDate, setAdmitDate] = React.useState(patient.admissionDate || todayStr);
+  // User enters today's DOL — system back-calculates DOL at admission
+  const [dolToday, setDolToday]   = React.useState(D_R.liveDol(patient));
+
+  // Derived: days between admit date and today → DOL at first admission
+  const admitDateObj   = new Date(admitDate + "T00:00:00");
+  const todayObj       = new Date(todayStr  + "T00:00:00");
+  const daysSinceAdmit = isNaN(admitDateObj) ? 0 : Math.max(0, Math.floor((todayObj - admitDateObj) / 86400000));
+  const admitDol       = Math.max(1, (Number(dolToday) || 1) - daysSinceAdmit);
 
   const save = () => onSubmit({
     ...patient,
@@ -516,7 +529,7 @@ function EditPatientModal({ patient, onClose, onSubmit }) {
     status,
     admissionDate: admitDate,
     dob: admitDate,
-    weights: patient.weights.map((w, i) => i === 0 ? { ...w, dol: Number(dol1) || 1 } : w),
+    weights: patient.weights.map((w, i) => i === 0 ? { ...w, dol: admitDol } : w),
   });
 
   return (
@@ -526,30 +539,54 @@ function EditPatientModal({ patient, onClose, onSubmit }) {
           <div style={{ fontWeight: 600, fontSize: 15 }}>Edit session · {patient.sessionId}</div>
           <button className="icon-btn" onClick={onClose}><Icon name="x" size={14} /></button>
         </div>
-        <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+
+          {/* Fixed info strip */}
           <div style={{ padding: "10px 12px", background: "var(--bg-2)", borderRadius: 8, fontSize: 12, color: "var(--ink-2)", display: "flex", gap: 16, flexWrap: "wrap" }}>
             <span>GA: <strong>{D_R.fmtGA(patient.ga)} wk</strong></span>
             <span>BW: <strong>{patient.bw} g</strong></span>
             <span>Sex: <strong>{patient.sex === "boys" ? "Male" : "Female"}</strong></span>
           </div>
+
+          {/* ── DOL + Admit date — most critical, prominent box ── */}
+          <div style={{ background: "var(--brand-bg,#e8f4fd)", border: "1.5px solid var(--brand-2,#2a7fc0)", borderRadius: 10, padding: "14px 16px" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--brand-2,#2a7fc0)", marginBottom: 12 }}>
+              วันและ DOL
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div className="field">
+                <label style={{ fontSize: 13 }}>วันที่รับไว้ <span className="unit">(Admit date)</span></label>
+                <input type="date" className="inp" value={admitDate}
+                  onChange={e => setAdmitDate(e.target.value)}
+                  style={{ fontSize: 16, padding: "10px 12px" }} />
+              </div>
+              <div className="field">
+                <label style={{ fontSize: 13 }}>DOL วันนี้ <span className="unit">(กรอก DOL ณ วันนี้ — ระบบคำนวณ DOL แรกรับให้)</span></label>
+                <input type="number" className="inp num" min={1} value={dolToday}
+                  onChange={e => setDolToday(e.target.value)}
+                  style={{ fontSize: 28, fontWeight: 800, color: "var(--brand-2,#2a7fc0)", padding: "8px 12px", letterSpacing: 1 }} />
+              </div>
+              {/* Live preview */}
+              <div style={{ fontSize: 12.5, color: "var(--ink-3)", background: "var(--bg-2)", borderRadius: 6, padding: "8px 10px", lineHeight: 1.7 }}>
+                DOL แรกรับ = <strong style={{ color: "var(--ink-1)" }}>{admitDol}</strong>
+                <span style={{ margin: "0 8px", color: "var(--line)" }}>·</span>
+                พรุ่งนี้ DOL <strong style={{ color: "var(--ink-1)" }}>{(Number(dolToday) || 1) + 1}</strong>
+                {daysSinceAdmit > 0 &&
+                  <span style={{ marginLeft: 8, color: "var(--ink-4)" }}>({daysSinceAdmit} วันหลังรับไว้)</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          {/* Other fields */}
           <div className="row-2">
             <div className="field">
               <label>ชื่อย่อ</label>
-              <input className="inp" maxLength={2} value={name} onChange={e => setName(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>DOL แรกรับ <span className="unit">(Day of Life at admit)</span></label>
-              <input type="number" className="inp num" min={1} value={dol1} onChange={e => setDol1(e.target.value)} />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>วันที่รับไว้ <span className="unit">(Admit date)</span></label>
-              <input type="date" className="inp" value={admitDate} onChange={e => setAdmitDate(e.target.value)} />
+              <input className="inp" maxLength={2} value={name} onChange={e => setName(e.target.value)} style={{ fontSize: 16 }} />
             </div>
             <div className="field">
               <label>Status</label>
-              <select className="sel" value={status} onChange={e => setStatus(e.target.value)}>
+              <select className="sel" value={status} onChange={e => setStatus(e.target.value)} style={{ fontSize: 15 }}>
                 <option value="Active">Active</option>
                 <option value="Discharged">Discharged</option>
                 <option value="Transferred">Transferred</option>
@@ -560,18 +597,21 @@ function EditPatientModal({ patient, onClose, onSubmit }) {
           <div className="row-2">
             <div className="field">
               <label>Bed</label>
-              <select className="sel" value={bed} onChange={e => setBed(e.target.value)}>
+              <select className="sel" value={bed} onChange={e => setBed(e.target.value)} style={{ fontSize: 15 }}>
                 {BED_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
             </div>
             <div className="field">
               <label>Diagnosis</label>
-              <input className="inp" value={dx} onChange={e => setDx(e.target.value)} placeholder="ELBW · RDS …" />
+              <input className="inp" value={dx} onChange={e => setDx(e.target.value)} placeholder="ELBW · RDS …" style={{ fontSize: 15 }} />
             </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
             <button className="btn" onClick={onClose}>Cancel</button>
-            <button className="btn primary" onClick={save}><Icon name="save" size={14} color="#fff" /> Save changes</button>
+            <button className="btn primary" onClick={save} style={{ fontSize: 15, padding: "10px 20px" }}>
+              <Icon name="save" size={14} color="#fff" /> Save changes
+            </button>
           </div>
         </div>
       </div>
