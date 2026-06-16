@@ -401,15 +401,20 @@ function NewPatientModal({ onClose, onSubmit }) {
           <div style={{ height: 10 }} />
           <div style={{ background: "var(--brand-bg,#e8f4fd)", border: "1.5px solid var(--brand-2,#2a7fc0)", borderRadius: 10, padding: "14px 16px" }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: "var(--brand-2,#2a7fc0)", marginBottom: 12 }}>วันและ DOL แรกรับ</div>
-            <div className="row-2">
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div className="field">
                 <label style={{ fontSize: 13 }}>วันที่รับไว้ <span className="unit">(Admit date)</span></label>
                 <input type="date" className="inp" value={admitDate} onChange={e => setAdmitDate(e.target.value)} style={{ fontSize: 16, padding: "10px 12px" }} />
               </div>
               <div className="field">
-                <label style={{ fontSize: 13 }}>DOL แรกรับ <span className="unit">(Day of Life today)</span></label>
+                <label style={{ fontSize: 13 }}>DOL วันนี้ <span className="unit">(= DOL แรกรับ ถ้ารับวันนี้)</span></label>
                 <input type="number" className="inp num" min={1} value={dol1} onChange={e => setDol1(parseInt(e.target.value) || 1)}
                   style={{ fontSize: 28, fontWeight: 800, color: "var(--brand-2,#2a7fc0)", padding: "8px 12px" }} />
+              </div>
+              <div style={{ fontSize: 12, color: "var(--ink-3)", background: "var(--bg-2)", borderRadius: 6, padding: "8px 10px" }}>
+                DOL แรกรับ = <strong style={{ color: "var(--ink-1)" }}>{dol1}</strong>
+                <span style={{ margin: "0 8px", color: "var(--line)" }}>·</span>
+                พรุ่งนี้ DOL <strong style={{ color: "var(--ink-1)" }}>{(Number(dol1) || 1) + 1}</strong>
               </div>
             </div>
           </div>
